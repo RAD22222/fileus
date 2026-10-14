@@ -7,11 +7,11 @@ import {
   CheckCircle2,
   TrendingUp,
 } from 'lucide-react';
-import { useAuthAndSync } from '../context/AuthAndSyncContext';
+import { useAppData } from '../context/AppDataContext';
 import { TaskCategory } from '../types';
 
 export const AnalyticsVisualizer: React.FC = () => {
-  const { tasks, completions, todayStats, setSelectedDate } = useAuthAndSync();
+  const { tasks, completions, todayStats, setSelectedDate } = useAppData();
   const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<{
     date: string;
     total: number;
@@ -87,145 +87,141 @@ export const AnalyticsVisualizer: React.FC = () => {
     });
   }, [heatmapData]);
 
-  // Monochromatic Glass Intensity Scale
-  const getMonochromeHeatmapColor = (pct: number, total: number) => {
-    if (total === 0) return 'bg-black/5 dark:bg-white/5 border-black/5 dark:border-white/5 opacity-40';
-    if (pct === 0) return 'bg-black/10 dark:bg-white/10 border-black/10 dark:border-white/10';
-    if (pct < 35) return 'bg-black/30 dark:bg-white/30 border-black/30 dark:border-white/30 text-white dark:text-black';
-    if (pct < 70) return 'bg-black/60 dark:bg-white/60 border-black/60 dark:border-white/60 text-white dark:text-black';
-    if (pct < 100) return 'bg-black/85 dark:bg-white/85 border-black/80 dark:border-white/80 text-white dark:text-black';
-    return 'bg-black dark:bg-white border-black dark:border-white text-white dark:text-black ring-2 ring-black/20 dark:ring-white/30 font-black';
+  // MD3 tonal heatmap scale based on the primary color
+  const getHeatmapStyle = (pct: number, total: number): React.CSSProperties => {
+    if (total === 0) {
+      return { background: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-variant)', opacity: 0.5 };
+    }
+    if (pct === 0) {
+      return { background: 'var(--md-surface-container-highest)', color: 'var(--md-on-surface-variant)' };
+    }
+    if (pct < 35) {
+      return { background: 'color-mix(in srgb, var(--md-primary) 25%, var(--md-surface))', color: 'var(--md-on-surface)' };
+    }
+    if (pct < 70) {
+      return { background: 'color-mix(in srgb, var(--md-primary) 50%, var(--md-surface))', color: 'var(--md-on-surface)' };
+    }
+    if (pct < 100) {
+      return { background: 'color-mix(in srgb, var(--md-primary) 75%, var(--md-surface))', color: 'var(--md-on-primary)' };
+    }
+    return { background: 'var(--md-primary)', color: 'var(--md-on-primary)', fontWeight: 700 };
   };
 
   const columnHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
+  const metrics: { key: string; label: string; value: string | number; unit: string; hint: string; icon: React.ReactNode }[] = [
+    {
+      key: 'streak',
+      label: 'Streak',
+      value: todayStats.currentStreak,
+      unit: 'days',
+      hint: 'Current active',
+      icon: <Flame className="w-4 h-4" strokeWidth={2.5} style={{ color: 'var(--md-primary)' }} />,
+    },
+    {
+      key: 'best',
+      label: 'Best streak',
+      value: todayStats.bestStreak,
+      unit: 'days',
+      hint: 'Personal record',
+      icon: <Award className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />,
+    },
+    {
+      key: 'logs',
+      label: 'Completions',
+      value: completions.length,
+      unit: 'logs',
+      hint: 'Total checked off',
+      icon: <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />,
+    },
+    {
+      key: 'active',
+      label: 'Configured',
+      value: tasks.filter(t => !t.isArchived).length,
+      unit: 'habits',
+      hint: 'Active protocol',
+      icon: <TrendingUp className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />,
+    },
+  ];
+
   return (
-    <div className="space-y-4 sm:space-y-8 w-full max-w-full">
-
-      {/* Top Banner */}
-      <div className="glass-surface p-4 sm:p-7 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/15 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-black dark:text-white" />
-            <h2 className="text-lg sm:text-2xl font-black text-black dark:text-white">
-              Habit Analytics & Heatmaps
-            </h2>
-          </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Real-time visualization of your habit consistency, adherence patterns, and streaks.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl glass-button text-xs font-mono font-bold text-black dark:text-white self-start sm:self-auto shrink-0">
-          <span>Adherence Score: {consistencyScore}%</span>
-        </div>
-      </div>
-
-      {/* 4 Metric Cards - Mobile 2-col, Desktop 4-col */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 w-full">
-        
-        {/* Current Streak */}
-        <div className="glass-card p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-1 sm:space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">Streak</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg glass-button flex items-center justify-center">
-              <Flame className="w-3.5 h-3.5 fill-black dark:fill-white text-black dark:text-white" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-mono font-black text-black dark:text-white">
-              {todayStats.currentStreak}
-            </span>
-            <span className="text-[10px] sm:text-xs font-mono text-zinc-500">days</span>
-          </div>
-          <p className="text-[10px] sm:text-[11px] font-mono text-zinc-500 dark:text-zinc-400">Current active</p>
-        </div>
-
-        {/* Longest Streak */}
-        <div className="glass-card p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-1 sm:space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">Best Streak</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg glass-button flex items-center justify-center">
-              <Award className="w-3.5 h-3.5 text-black dark:text-white" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-mono font-black text-black dark:text-white">
-              {todayStats.bestStreak}
-            </span>
-            <span className="text-[10px] sm:text-xs font-mono text-zinc-500">days</span>
-          </div>
-          <p className="text-[10px] sm:text-[11px] font-mono text-zinc-500 dark:text-zinc-400">Personal record</p>
-        </div>
-
-        {/* Total Habits Completed */}
-        <div className="glass-card p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-1 sm:space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">Completions</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg glass-button flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5 text-black dark:text-white" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-mono font-black text-black dark:text-white">
-              {completions.length}
-            </span>
-            <span className="text-[10px] sm:text-xs font-mono text-zinc-500">logs</span>
-          </div>
-          <p className="text-[10px] sm:text-[11px] font-mono text-zinc-500 dark:text-zinc-400">Total checked off</p>
-        </div>
-
-        {/* Active Habits */}
-        <div className="glass-card p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-1 sm:space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-mono font-medium text-zinc-500 dark:text-zinc-400">Configured</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg glass-button flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5 text-black dark:text-white" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl sm:text-3xl font-mono font-black text-black dark:text-white">
-              {tasks.filter(t => !t.isArchived).length}
-            </span>
-            <span className="text-[10px] sm:text-xs font-mono text-zinc-500">habits</span>
-          </div>
-          <p className="text-[10px] sm:text-[11px] font-mono text-zinc-500 dark:text-zinc-400">Active protocol</p>
-        </div>
-
-      </div>
-
-      {/* 35-Day Monochrome Heatmap Matrix - Mobile Responsive */}
-      <div className="glass-card p-3 sm:p-7 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-3 sm:space-y-4 w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="space-y-4">
+      {/* Header */}
+      <section className="md-card md-card--elevated flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+          >
+            <BarChart3 className="w-5 h-5" />
+          </span>
           <div>
-            <h3 className="text-sm sm:text-base font-bold text-black dark:text-white">
-              35-Day Consistency Matrix
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Tap any tile to inspect completions or jump to that day in your schedule.
+            <h2 className="md-title-large">Analytics</h2>
+            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Consistency, adherence, and streaks
             </p>
           </div>
+        </div>
+        <span className="md-chip md-chip--assist">
+          <span className="font-mono">Adherence {consistencyScore}%</span>
+        </span>
+      </section>
 
-          {/* Monochrome Legend */}
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400">
+      {/* Metric cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {metrics.map(m => (
+          <div key={m.key} className="md-card md-card--filled space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="md-label-large" style={{ color: 'var(--md-on-surface-variant)' }}>
+                {m.label}
+              </span>
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ background: 'var(--md-surface-container-lowest)' }}
+              >
+                {m.icon}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="md-headline-medium font-mono">{m.value}</span>
+              <span className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+                {m.unit}
+              </span>
+            </div>
+            <p className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+              {m.hint}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* 35-day heatmap */}
+      <section className="md-card md-card--outlined space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="md-title-medium">35-day consistency matrix</h3>
+            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Tap a day to load it in your schedule
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
             <span>0%</span>
-            <div className="w-3 h-3 rounded bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10" />
-            <div className="w-3 h-3 rounded bg-black/30 dark:bg-white/30" />
-            <div className="w-3 h-3 rounded bg-black/60 dark:bg-white/60" />
-            <div className="w-3 h-3 rounded bg-black dark:bg-white" />
+            <span className="w-3.5 h-3.5 rounded" style={{ background: 'var(--md-surface-container-highest)' }} />
+            <span className="w-3.5 h-3.5 rounded" style={{ background: 'color-mix(in srgb, var(--md-primary) 25%, var(--md-surface))' }} />
+            <span className="w-3.5 h-3.5 rounded" style={{ background: 'color-mix(in srgb, var(--md-primary) 50%, var(--md-surface))' }} />
+            <span className="w-3.5 h-3.5 rounded" style={{ background: 'color-mix(in srgb, var(--md-primary) 75%, var(--md-surface))' }} />
+            <span className="w-3.5 h-3.5 rounded" style={{ background: 'var(--md-primary)' }} />
             <span>100%</span>
           </div>
         </div>
 
-        {/* Weekday Column Headers */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] font-mono font-bold text-zinc-400 pt-1">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
           {columnHeaders.map((h, idx) => (
             <span key={idx}>{h}</span>
           ))}
         </div>
 
-        {/* Heatmap Grid */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {heatmapData.map((dItem) => (
             <button
               key={dItem.date}
@@ -233,116 +229,99 @@ export const AnalyticsVisualizer: React.FC = () => {
                 setSelectedHeatmapDay(dItem);
                 setSelectedDate(dItem.date);
               }}
-              className={`aspect-square min-w-0 rounded-lg sm:rounded-xl border flex flex-col items-center justify-center p-0.5 sm:p-1 transition-all active:scale-95 ${getMonochromeHeatmapColor(
-                dItem.percentage,
-                dItem.total
-              )}`}
+              className="aspect-square min-w-0 rounded-lg flex flex-col items-center justify-center transition-transform active:scale-90 md-ripple"
+              style={getHeatmapStyle(dItem.percentage, dItem.total)}
               title={`${dItem.date}: ${dItem.completed}/${dItem.total} completed (${dItem.percentage}%)`}
               aria-label={`${dItem.date} ${dItem.percentage}% completed`}
             >
-              <span className="text-[9px] sm:text-[10px] font-mono font-bold leading-none">
-                {dItem.dateObj.getDate()}
-              </span>
-              <span className="text-[7px] sm:text-[8px] font-mono opacity-80 leading-none mt-0.5">
+              <span className="md-label-small font-mono leading-none">{dItem.dateObj.getDate()}</span>
+              <span className="md-label-small leading-none mt-0.5" style={{ opacity: 0.75 }}>
                 {dItem.percentage}%
               </span>
             </button>
           ))}
         </div>
 
-        {/* Tooltip Card */}
         {selectedHeatmapDay && (
-          <div className="mt-2 p-2.5 sm:p-3 rounded-xl glass-button flex items-center justify-between text-xs font-mono animate-in fade-in">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <Calendar className="w-3.5 h-3.5 text-black dark:text-white shrink-0" />
-              <span className="font-bold text-black dark:text-white truncate">
-                {selectedHeatmapDay.date}
-              </span>
-              <span className="text-zinc-500 dark:text-zinc-400 truncate">
+          <div
+            className="flex items-center justify-between gap-2 p-3 rounded-xl md-body-medium"
+            style={{ background: 'var(--md-surface-container-highest)' }}
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Calendar className="w-4 h-4 shrink-0" style={{ color: 'var(--md-primary)' }} />
+              <span className="font-mono font-medium truncate">{selectedHeatmapDay.date}</span>
+              <span className="truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
                 · {selectedHeatmapDay.completed}/{selectedHeatmapDay.total} ({selectedHeatmapDay.percentage}%)
               </span>
-            </div>
-            <span className="font-bold text-black dark:text-white shrink-0 ml-1">
+            </span>
+            <span className="md-label-large shrink-0" style={{ color: 'var(--md-primary)' }}>
               Loaded
             </span>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Weekly Trends & Category Breakdown - Stacked on Mobile */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6 w-full">
-
-        {/* Weekly Adherence Bars */}
-        <div className="glass-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-3 sm:space-y-4 w-full">
+      {/* Weekly + category */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <section className="md-card md-card--outlined space-y-3">
           <div>
-            <h3 className="text-sm font-bold text-black dark:text-white">
-              Weekly Day Adherence
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Average routine completion percentage by day of week.
+            <h3 className="md-title-medium">Weekly adherence</h3>
+            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Average completion by day of week
             </p>
           </div>
-
-          <div className="flex items-end justify-between gap-1.5 sm:gap-2 h-36 sm:h-40 pt-4 pb-2 border-b border-black/5 dark:border-white/5">
+          <div className="flex items-end justify-between gap-1.5 h-40 pb-2">
             {weeklyTrends.map((w) => (
               <div key={w.day} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end min-w-0">
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-500 dark:text-zinc-400">
+                <span className="md-label-small font-mono" style={{ color: 'var(--md-on-surface-variant)' }}>
                   {w.percentage}%
                 </span>
-                <div className="w-full max-w-[28px] bg-black/5 dark:bg-white/5 rounded-lg overflow-hidden h-24 sm:h-28 flex items-end">
+                <div className="w-full max-w-7 flex-1 flex items-end rounded-lg" style={{ background: 'var(--md-surface-container-highest)' }}>
                   <div
-                    className="w-full bg-black dark:bg-white rounded-lg transition-all duration-500"
-                    style={{ height: `${Math.max(w.percentage, 4)}%` }}
+                    className="w-full rounded-lg transition-all duration-500"
+                    style={{
+                      height: `${Math.max(w.percentage, 4)}%`,
+                      background: 'var(--md-primary)',
+                    }}
                   />
                 </div>
-                <span className="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                <span className="md-label-small font-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
                   {w.day}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Category Breakdown */}
-        <div className="glass-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-black/10 dark:border-white/10 space-y-3 sm:space-y-4 w-full">
+        <section className="md-card md-card--outlined space-y-3">
           <div>
-            <h3 className="text-sm font-bold text-black dark:text-white">
-              Habits by Domain
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Habit density across key life categories.
+            <h3 className="md-title-medium">Habits by domain</h3>
+            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Where your discipline is distributed
             </p>
           </div>
-
-          <div className="space-y-2.5 sm:space-y-3 pt-1">
+          <div className="space-y-2.5">
             {categoryStats.map(cat => {
               const totalAllTasks = tasks.length || 1;
               const ratio = Math.round((cat.totalTasks / totalAllTasks) * 100);
 
               return (
                 <div key={cat.category} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="font-semibold text-black dark:text-white capitalize">
-                      {cat.category}
-                    </span>
-                    <span className="text-zinc-500 dark:text-zinc-400 text-[10px] sm:text-[11px]">
-                      {cat.totalTasks} habit{cat.totalTasks !== 1 ? 's' : ''} ({cat.completionsCount} logs)
+                  <div className="flex items-center justify-between md-body-medium">
+                    <span className="font-medium capitalize">{cat.category}</span>
+                    <span className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+                      {cat.totalTasks} habit{cat.totalTasks !== 1 ? 's' : ''} · {cat.completionsCount} logs
                     </span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                    <div
-                      className="h-full bg-black dark:bg-white rounded-full transition-all duration-500"
-                      style={{ width: `${ratio}%` }}
-                    />
+                  <div className="md-progress-linear">
+                    <div className="md-progress-linear__bar" style={{ width: `${ratio}%` }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
+        </section>
       </div>
-
     </div>
   );
 };

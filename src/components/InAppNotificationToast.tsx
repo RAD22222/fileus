@@ -34,23 +34,30 @@ export const InAppNotificationToast: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-18 sm:bottom-5 right-3 sm:right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-2 sm:px-0">
+    <div
+      className="fixed left-3 right-3 bottom-[6.25rem] md:bottom-5 md:left-auto md:right-5 z-40 flex flex-col gap-2 md:w-96 pointer-events-none"
+      role="region"
+      aria-label="Notifications"
+    >
       {toasts.map(toast => (
-        <div
-          key={toast.id}
-          className="pointer-events-auto glass-modal text-black dark:text-white p-4 rounded-2xl shadow-xl border border-black/15 dark:border-white/20 flex items-start gap-3 transform transition-all duration-300 animate-in slide-in-from-bottom-3"
-          role="alert"
-        >
-          <div className="w-9 h-9 rounded-xl glass-button flex items-center justify-center shrink-0 text-lg">
-            {toast.icon ? toast.icon : <BellRing className="w-4 h-4 text-black dark:text-white" />}
+        <div key={toast.id} className="md-snackbar pointer-events-auto" role="alert">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-lg"
+            style={{ background: 'rgba(255,255,255,0.12)' }}
+            aria-hidden="true"
+          >
+            {toast.icon ? toast.icon : <BellRing className="w-4 h-4" />}
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-mono font-bold text-black dark:text-white truncate">{toast.title}</h4>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-0.5 line-clamp-2">{toast.body}</p>
+            <h4 className="md-title-small truncate">{toast.title}</h4>
+            <p className="md-body-small mt-0.5 line-clamp-2" style={{ opacity: 0.8 }}>
+              {toast.body}
+            </p>
           </div>
           <button
             onClick={() => removeToast(toast.id)}
-            className="min-h-[36px] min-w-[36px] flex items-center justify-center text-zinc-400 hover:text-black dark:hover:text-white p-1 rounded-lg transition-colors"
+            className="md-icon-button md-ripple"
+            style={{ color: 'inherit' }}
             aria-label="Dismiss notification"
           >
             <X className="w-4 h-4" />

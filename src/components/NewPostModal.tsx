@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Send,
-  Flame,
-} from 'lucide-react';
-import { useAuthAndSync } from '../context/AuthAndSyncContext';
+import { X, Send, Flame } from 'lucide-react';
+import { useAppData } from '../context/AppDataContext';
 
 interface NewPostModalProps {
   isOpen: boolean;
@@ -15,7 +11,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { addCommunityPost, todayStats, routines } = useAuthAndSync();
+  const { addCommunityPost, todayStats, routines } = useAppData();
 
   const [title, setTitle] = useState(`${todayStats.currentStreak}-Day Protocol Streak`);
   const [content, setContent] = useState('');
@@ -43,108 +39,100 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-      <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-7 pb-8 sm:pb-7 border border-black/15 dark:border-white/15 space-y-4 sm:space-y-5 relative max-h-[90dvh] overflow-y-auto">
-        
-        {/* Mobile handle */}
-        <div className="sm:hidden w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto -mt-1 mb-2 shrink-0" />
+    <div className="md-scrim" onClick={onClose}>
+      <div
+        className="md-bottom-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share habit breakthrough"
+      >
+        <div className="md-bottom-sheet__handle" aria-hidden="true" />
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 sm:top-5 right-4 sm:right-5 text-zinc-400 hover:text-black dark:hover:text-white p-2 rounded-xl transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Social victory
+            </div>
+            <h2 className="md-headline-small">Share a habit win</h2>
+          </div>
+          <button onClick={onClose} className="md-icon-button md-ripple" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <div className="space-y-1 pr-8">
-          <span className="text-xs sm:text-sm font-mono uppercase tracking-widest text-zinc-500">Social Victory</span>
-          <h3 className="text-lg sm:text-xl font-black text-black dark:text-white">
-            Share Habit Breakthrough
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Inspire your accountability circle and log your active streak.
-          </p>
+        <div className="md-card md-card--filled flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 md-title-small">
+            <Flame className="w-5 h-5" strokeWidth={2.5} style={{ color: 'var(--md-primary)' }} />
+            <span>Attaching {todayStats.currentStreak}-day streak</span>
+          </div>
+          <span className="md-label-large font-mono" style={{ color: 'var(--md-on-surface-variant)' }}>
+            {todayStats.completionPercentage}% today
+          </span>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="flex items-center justify-between p-3 rounded-xl glass-button text-xs font-mono">
-            <div className="flex items-center gap-2 text-black dark:text-white font-bold">
-              <Flame className="w-4 h-4 fill-black dark:fill-white text-black dark:text-white" />
-              <span>Attaching {todayStats.currentStreak}-day streak badge</span>
-            </div>
-            <span className="text-zinc-500">{todayStats.completionPercentage}% today</span>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Headline *
-            </label>
+          <label className="md-text-field">
             <input
+              className="md-text-field__input"
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Completed 10 consecutive focus sprints"
+              placeholder=" "
               maxLength={120}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-sm focus:outline-none"
             />
-          </div>
+            <span className="md-text-field__label">Headline</span>
+          </label>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Associated Routine
-            </label>
+          <label className="md-text-field md-text-field--select">
             <select
+              className="md-text-field__input"
               value={routineName}
               onChange={(e) => setRoutineName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-xs font-mono focus:outline-none"
             >
               {routines.map(r => (
                 <option key={r.id} value={r.title}>
                   {r.title}
                 </option>
               ))}
-              <option value="Daily Routine Protocol">General Protocol</option>
+              <option value="Daily Routine Protocol">General protocol</option>
             </select>
-          </div>
+            <span className="md-text-field__label">Associated routine</span>
+            <span className="md-text-field__arrow" aria-hidden="true">
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+          </label>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Reflection / Notes *
-            </label>
+          <label className="md-text-field md-text-field--textarea">
             <textarea
+              className="md-text-field__input"
               rows={4}
               required
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Share what worked, how you navigated friction, and encouragement for peers..."
+              placeholder=" "
               maxLength={600}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-xs focus:outline-none"
             />
-          </div>
+            <span className="md-text-field__label">Reflection / notes</span>
+          </label>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-black/5 dark:border-white/5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl glass-button text-xs font-mono font-bold transition-colors"
-            >
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="md-button md-button--text md-ripple">
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim() || !content.trim()}
-              className="min-h-[44px] px-5 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-mono font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+              className="md-button md-button--filled md-ripple"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Publish Milestone</span>
+              <Send className="w-4 h-4" />
+              Publish
             </button>
           </div>
-
         </form>
-
       </div>
     </div>
   );

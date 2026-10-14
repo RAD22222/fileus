@@ -6,6 +6,7 @@ import {
   VolumeX,
   X,
   Send,
+  Check,
 } from 'lucide-react';
 import { notificationService } from '../services/notificationService';
 
@@ -54,7 +55,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   };
 
   const handleSendTestNotification = () => {
-    notificationService.sendNotification('HabitPulse Routine Alert (Test)', {
+    notificationService.sendNotification('HabitPulse routine alert (test)', {
       body: 'Scheduled routine: "Morning Priming Protocol" is active. Focus time!',
       playSound: soundEnabled,
     });
@@ -62,117 +63,125 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     setTimeout(() => setTestSent(false), 2500);
   };
 
+  const statusLabel = permission === 'granted' ? 'Active' : permission === 'denied' ? 'Blocked' : 'Not set';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-      <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-7 pb-8 sm:pb-7 border border-black/15 dark:border-white/15 space-y-4 sm:space-y-5 relative max-h-[90dvh] overflow-y-auto">
-        
-        {/* Mobile handle */}
-        <div className="sm:hidden w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto -mt-1 mb-2 shrink-0" />
+    <div className="md-scrim" onClick={onClose}>
+      <div
+        className="md-bottom-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Notification settings"
+      >
+        <div className="md-bottom-sheet__handle" aria-hidden="true" />
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 sm:top-5 right-4 sm:right-5 text-zinc-400 hover:text-black dark:hover:text-white p-2 rounded-xl transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="space-y-1 pr-8">
-          <span className="text-sm font-mono uppercase tracking-widest text-zinc-500">Alerts & Audio</span>
-          <h3 className="text-lg sm:text-xl font-black text-black dark:text-white">
-            Push Notifications & Chimes
-          </h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Never miss scheduled habits with native push notifications and acoustic chimes.
-          </p>
-        </div>
-
-        {/* Permission Status */}
-        <div className="p-4 rounded-2xl glass-card border border-black/15 dark:border-white/15 space-y-3">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="font-bold text-black dark:text-white">System Permission</span>
-            <span className="uppercase font-bold text-zinc-500">
-              {permission === 'granted' ? 'Active' : permission === 'denied' ? 'Blocked' : 'Unset'}
-            </span>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Alerts &amp; audio
+            </div>
+            <h2 className="md-headline-small">Notifications</h2>
           </div>
-
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            {permission === 'granted'
-              ? 'Push notifications are authorized. You will receive alerts even when HabitPulse is in the background.'
-              : 'Grant browser permission to receive scheduled reminders.'}
-          </p>
-
-          {permission !== 'granted' && (
-            <button
-              onClick={handleRequestPermission}
-              className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-mono font-bold shadow-sm transition-all active:scale-95"
-            >
-              <Bell className="w-4 h-4" />
-              <span>Enable Push Notifications</span>
-            </button>
-          )}
-        </div>
-
-        {/* Chime toggle */}
-        <div className="flex items-center justify-between p-4 rounded-2xl glass-button">
-          <div className="space-y-0.5">
-            <span className="text-xs font-mono font-bold text-black dark:text-white">
-              Web Audio Melodic Chimes
-            </span>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-              Plays acoustic synthesis upon completion or alerts.
-            </p>
-          </div>
-          <button
-            onClick={handleToggleSound}
-            className={`min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl transition-all border ${
-              soundEnabled
-                ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-xs'
-                : 'glass-button text-zinc-400'
-            }`}
-            title={soundEnabled ? 'Disable sound' : 'Enable sound'}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          <button onClick={onClose} className="md-icon-button md-ripple" aria-label="Close">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Lead Time */}
-        <div className="space-y-2">
-          <label className="text-xs font-mono font-bold text-black dark:text-white">
-            Lead Time Reminder:
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { value: 0, label: 'Exact time' },
-              { value: 5, label: '5m before' },
-              { value: 15, label: '15m before' },
-            ].map(item => (
-              <button
-                key={item.value}
-                onClick={() => handleSelectLeadTime(item.value)}
-                className={`min-h-[42px] py-2 px-2.5 rounded-xl text-xs font-mono font-bold border transition-all ${
-                  leadTime === item.value
-                    ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-xs'
-                    : 'glass-button text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
-                }`}
+        <div className="space-y-5">
+          {/* Permission */}
+          <section className="md-card md-card--filled space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="md-title-small">System permission</span>
+              <span
+                className="md-chip md-chip--assist"
+                style={
+                  permission === 'granted'
+                    ? { background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)', borderColor: 'transparent' }
+                    : undefined
+                }
               >
-                {item.label}
+                {permission === 'granted' && <Check className="w-4 h-4" />}
+                {statusLabel}
+              </span>
+            </div>
+            <p className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+              {permission === 'granted'
+                ? 'Push notifications are authorized. HabitPulse can alert you before each scheduled habit.'
+                : 'Allow browser notifications to get reminders before each scheduled habit.'}
+            </p>
+            {permission !== 'granted' && (
+              <button onClick={handleRequestPermission} className="md-button md-button--filled md-ripple w-full">
+                <Bell className="w-4 h-4" />
+                Enable push notifications
               </button>
-            ))}
+            )}
+          </section>
+
+          {/* Sound switch */}
+          <div className="flex items-center gap-4 py-1">
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ background: 'var(--md-secondary-container)', color: 'var(--md-on-secondary-container)' }}
+            >
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="md-body-large block">Completion chimes</span>
+              <span className="md-body-small block" style={{ color: 'var(--md-on-surface-variant)' }}>
+                Melodic sounds on check-off and reminders
+              </span>
+            </span>
+            <button
+              onClick={handleToggleSound}
+              className={`md-switch${soundEnabled ? ' md-switch--on' : ''}`}
+              role="switch"
+              aria-checked={soundEnabled}
+              aria-label="Completion chimes"
+            >
+              <span className="md-switch__thumb">
+                {soundEnabled && <Check className="w-3 h-3" strokeWidth={3} />}
+              </span>
+            </button>
           </div>
-        </div>
 
-        {/* Test Notification */}
-        <div className="pt-2">
-          <button
-            onClick={handleSendTestNotification}
-            className="w-full min-h-[44px] flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl glass-button text-black dark:text-white text-xs font-mono font-bold transition-all active:scale-95"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>{testSent ? 'Dispatched' : 'Test Notification & Chime'}</span>
+          <hr className="md-divider" />
+
+          {/* Lead time */}
+          <section>
+            <h3 className="md-title-small mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Remind me
+            </h3>
+            <div className="md-segmented w-full">
+              {([
+                { value: 0, label: 'On time' },
+                { value: 5, label: '5 min before' },
+                { value: 15, label: '15 min before' },
+              ]).map(item => (
+                <button
+                  key={item.value}
+                  onClick={() => handleSelectLeadTime(item.value)}
+                  className={`md-segmented__item md-ripple flex-1${leadTime === item.value ? ' md-segmented__item--selected' : ''}`}
+                  aria-pressed={leadTime === item.value}
+                >
+                  {leadTime === item.value && <Check className="w-4 h-4" />}
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Test */}
+          <button onClick={handleSendTestNotification} className="md-button md-button--tonal md-ripple w-full">
+            {testSent ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+            {testSent ? 'Dispatched' : 'Send test notification'}
           </button>
-        </div>
 
+          <p className="md-body-small flex items-center gap-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+            <BellRing className="w-4 h-4 shrink-0" />
+            Reminders are checked every 30 seconds while HabitPulse is open.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,40 +1,35 @@
 import React from 'react';
 import {
   Flame,
-  Cloud,
   Bell,
   Sun,
   Moon,
   ChevronLeft,
   ChevronRight,
   Calendar,
-  CheckCircle2,
-  LogIn,
   Sliders,
 } from 'lucide-react';
-import { useAuthAndSync } from '../context/AuthAndSyncContext';
+import { useAppData } from '../context/AppDataContext';
 import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
-  onOpenSyncModal: () => void;
+  scrolled?: boolean;
   onOpenNotificationModal: () => void;
   onOpenSettingsModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  onOpenSyncModal,
+  scrolled = false,
   onOpenNotificationModal,
   onOpenSettingsModal,
 }) => {
   const {
-    user,
-    syncStatus,
     todayStats,
     selectedDate,
     setSelectedDate,
-  } = useAuthAndSync();
+  } = useAppData();
 
-  const { isDark, toggleDarkQuick, highContrast } = useTheme();
+  const { isDark, toggleDarkQuick } = useTheme();
 
   // Date navigation helpers
   const handlePrevDay = () => {
@@ -68,188 +63,102 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 glass-surface border-b border-black/10 dark:border-white/10 transition-colors w-full">
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-13 sm:h-16 gap-1 sm:gap-2">
-          
-          {/* Logo & Brand */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-black shadow-md border border-black/20 dark:border-white/30 shrink-0">
-              <span className="text-xs sm:text-sm tracking-tighter font-mono">HP</span>
-            </div>
-            <div className="hidden sm:block">
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-black dark:text-white font-sans">
-                  HABITPULSE
-                </span>
-                <span className="px-1.5 py-0.2 text-[9px] font-mono uppercase tracking-widest bg-black/10 dark:bg-white/10 text-black dark:text-white rounded border border-black/10 dark:border-white/10">
-                  SYNC
-                </span>
-              </div>
-              <p className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tracking-tight">Daily Habit Architecture</p>
-            </div>
-          </div>
+    <header
+      className={`md-top-app-bar${scrolled ? ' md-top-app-bar--scrolled' : ''}`}
+      role="banner"
+    >
+      {/* App logo */}
+      <div
+        className="w-9 h-9 shrink-0 flex items-center justify-center font-bold text-sm rounded-xl"
+        style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+        aria-hidden="true"
+      >
+        HP
+      </div>
 
-          {/* Date Selector Navigation - Ergonomic & Ultra-Compact on Mobile */}
-          <div className="flex items-center gap-0.5 p-0.5 rounded-xl glass-button shrink-0">
-            <button
-              onClick={handlePrevDay}
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-              title="Previous Day"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-
-            <button
-              onClick={handleSetToday}
-              className={`h-7 sm:h-8 px-2 sm:px-3 text-xs font-mono font-bold rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 ${
-                isSelectedDateToday
-                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
-                  : 'text-zinc-700 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10'
-              }`}
-            >
-              <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-              <span className="text-[11px] sm:text-xs whitespace-nowrap">
-                {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
-              </span>
-            </button>
-
-            <button
-              onClick={handleNextDay}
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-              title="Next Day"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            </button>
-          </div>
-
-          {/* Right Action Hub - Carefully Scaled & Non-Overflowing */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-
-            {/* Streak Counter */}
-            <div
-              className="flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl glass-button text-black dark:text-white font-mono font-extrabold text-[11px] sm:text-xs cursor-default shrink-0"
-              title={`Streak: ${todayStats.currentStreak} days`}
-            >
-              <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-black dark:fill-white text-black dark:text-white shrink-0" />
-              <span>{todayStats.currentStreak}d</span>
-            </div>
-
-            {/* Daily Completion Pill - Desktop / Tablet only */}
-            <div
-              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl glass-button text-black dark:text-white font-mono font-bold text-xs cursor-default"
-              title={`${todayStats.completedCount} of ${todayStats.totalTasks} completed today`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-black dark:text-white" />
-              <span>{todayStats.completionPercentage}%</span>
-            </div>
-
-            {/* Cloud Sync Button - Tablet / Desktop only */}
-            <button
-              onClick={onOpenSyncModal}
-              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition-all border ${
-                syncStatus === 'synced'
-                  ? 'bg-black/5 dark:bg-white/10 text-black dark:text-white border-black/15 dark:border-white/20'
-                  : syncStatus === 'syncing'
-                  ? 'bg-black/10 dark:bg-white/15 text-black dark:text-white border-black/20 dark:border-white/30'
-                  : 'bg-black/5 dark:bg-white/5 text-zinc-600 dark:text-zinc-400 border-black/10 dark:border-white/10'
-              }`}
-              title="Cloud Multi-Device Sync"
-              aria-label="Cloud sync status"
-            >
-              <Cloud className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-              <span className="hidden lg:inline text-[11px] font-bold">
-                {syncStatus === 'synced' ? 'Synced' : syncStatus === 'syncing' ? 'Syncing' : 'Link'}
-              </span>
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  syncStatus === 'synced' ? 'bg-black dark:bg-white' : syncStatus === 'syncing' ? 'bg-zinc-400 animate-pulse' : 'border border-black dark:border-white'
-                }`}
-              />
-            </button>
-
-            {/* Push Notifications Trigger - Tablet / Desktop only */}
-            <button
-              onClick={onOpenNotificationModal}
-              className="hidden sm:flex items-center justify-center p-2 text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-xl glass-button hover:border-black/20 dark:hover:border-white/30 transition-colors relative"
-              title="Notifications"
-              aria-label="Push notifications"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-black dark:bg-white" />
-            </button>
-
-            {/* Dark Mode Quick Toggle */}
-            <button
-              onClick={toggleDarkQuick}
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-xl glass-button hover:border-black/20 dark:hover:border-white/30 transition-colors shrink-0"
-              title={isDark ? 'Light Mode' : 'Dark Mode'}
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" /> : <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-black" />}
-            </button>
-
-            {/* Settings Trigger with Sync Badge on mobile */}
-            <button
-              onClick={onOpenSettingsModal}
-              className={`w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl transition-colors glass-button relative shrink-0 ${
-                highContrast
-                  ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white'
-                  : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white'
-              }`}
-              title="Settings"
-              aria-label="Settings"
-            >
-              <Sliders className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {/* Subtle sync status indicator dot on mobile */}
-              <span
-                className={`sm:hidden absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-black ${
-                  syncStatus === 'synced'
-                    ? 'bg-black dark:bg-white'
-                    : syncStatus === 'syncing'
-                    ? 'bg-zinc-400 animate-pulse'
-                    : 'bg-zinc-300 dark:bg-zinc-600'
-                }`}
-              />
-            </button>
-
-            {/* User Account / Avatar (Shown if logged in, or on tablet/desktop) */}
-            {user ? (
-              <button
-                onClick={onOpenSyncModal}
-                className="flex items-center p-0.5 rounded-full border border-black/20 dark:border-white/20 hover:border-black dark:hover:border-white transition-all shrink-0"
-                title={user.displayName || user.email || 'User Profile & Sync'}
-                aria-label="User profile and sync"
-              >
-                {user.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || 'User'}
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full grayscale object-cover"
-                  />
-                ) : (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-[10px] sm:text-xs flex items-center justify-center">
-                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                  </div>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={onOpenSyncModal}
-                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-black text-xs font-bold transition-all shadow-xs shrink-0"
-                aria-label="Sync account"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sync</span>
-              </button>
-            )}
-
-          </div>
-
+      {/* Title */}
+      <div className="hidden sm:block ml-2 mr-1 min-w-0">
+        <div className="md-title-large leading-tight truncate">HabitPulse</div>
+        <div className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+          Daily Habit Architecture
         </div>
       </div>
+      <span className="sm:hidden md-title-large ml-2 mr-auto truncate">HabitPulse</span>
+
+      <div className="flex-1 hidden sm:block" />
+
+      {/* Streak — assist chip */}
+      <div
+        className="md-chip md-chip--assist hidden md:inline-flex"
+        title={`Streak: ${todayStats.currentStreak} days`}
+      >
+        <Flame
+          className="w-4 h-4"
+          strokeWidth={2.5}
+          style={{ color: 'var(--md-primary)' }}
+        />
+        <span className="font-mono">{todayStats.currentStreak}d</span>
+      </div>
+
+      {/* Date navigation — MD3 segmented button */}
+      <div className="md-segmented" role="group" aria-label="Select date">
+        <button
+          onClick={handlePrevDay}
+          className="md-segmented__item md-ripple px-2"
+          title="Previous Day"
+          aria-label="Previous day"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={handleSetToday}
+          className="md-segmented__item md-ripple min-w-[5rem] px-2"
+          title={isSelectedDateToday ? 'Today' : `Selected: ${formatDisplayDate(selectedDate)}`}
+        >
+          <Calendar className="w-4 h-4" />
+          <span className="md-label-large whitespace-nowrap">
+            {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
+          </span>
+        </button>
+        <button
+          onClick={handleNextDay}
+          className="md-segmented__item md-ripple px-2"
+          title="Next Day"
+          aria-label="Next day"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Actions */}
+      <button
+        onClick={toggleDarkQuick}
+        className="md-icon-button md-ripple"
+        title={isDark ? 'Light Mode' : 'Dark Mode'}
+        aria-label="Toggle dark mode"
+      >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+      <button
+        onClick={onOpenNotificationModal}
+        className="md-icon-button md-ripple relative"
+        title="Notifications"
+        aria-label="Push notifications"
+      >
+        <Bell className="w-5 h-5" />
+        <span
+          className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
+          style={{ background: 'var(--md-primary)' }}
+        />
+      </button>
+      <button
+        onClick={onOpenSettingsModal}
+        className="md-icon-button md-ripple"
+        title="Settings"
+        aria-label="Settings"
+      >
+        <Sliders className="w-5 h-5" />
+      </button>
     </header>
   );
 };

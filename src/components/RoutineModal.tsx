@@ -7,7 +7,7 @@ import {
   Moon,
   Clock,
 } from 'lucide-react';
-import { useAuthAndSync } from '../context/AuthAndSyncContext';
+import { useAppData } from '../context/AppDataContext';
 import { Routine, TimeOfDay } from '../types';
 
 interface RoutineModalProps {
@@ -16,12 +16,29 @@ interface RoutineModalProps {
   routineToEdit?: Routine | null;
 }
 
+const DAYS = [
+  { num: 0, label: 'S' },
+  { num: 1, label: 'M' },
+  { num: 2, label: 'T' },
+  { num: 3, label: 'W' },
+  { num: 4, label: 'T' },
+  { num: 5, label: 'F' },
+  { num: 6, label: 'S' },
+];
+
+const TIME_BLOCKS: { id: TimeOfDay; label: string; icon: React.ReactNode }[] = [
+  { id: 'morning', label: 'Morning', icon: <Sun className="w-4 h-4" /> },
+  { id: 'afternoon', label: 'Afternoon', icon: <Zap className="w-4 h-4" /> },
+  { id: 'evening', label: 'Evening', icon: <Moon className="w-4 h-4" /> },
+  { id: 'anytime', label: 'Anytime', icon: <Clock className="w-4 h-4" /> },
+];
+
 export const RoutineModal: React.FC<RoutineModalProps> = ({
   isOpen,
   onClose,
   routineToEdit,
 }) => {
-  const { routines, addRoutine, updateRoutine } = useAuthAndSync();
+  const { routines, addRoutine, updateRoutine } = useAppData();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -76,7 +93,7 @@ export const RoutineModal: React.FC<RoutineModalProps> = ({
           timeOfDay,
           targetDays,
           icon: timeOfDay === 'morning' ? 'sun' : timeOfDay === 'afternoon' ? 'zap' : timeOfDay === 'evening' ? 'moon' : 'clock',
-          color: '#ffffff',
+          color: '#007232',
           isArchived: false,
           order: routines.length,
         });
@@ -87,114 +104,95 @@ export const RoutineModal: React.FC<RoutineModalProps> = ({
     }
   };
 
-  const dayLabels = [
-    { num: 0, label: 'S' },
-    { num: 1, label: 'M' },
-    { num: 2, label: 'T' },
-    { num: 3, label: 'W' },
-    { num: 4, label: 'T' },
-    { num: 5, label: 'F' },
-    { num: 6, label: 'S' },
-  ];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-      <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-md w-full p-4 sm:p-7 pb-8 sm:pb-7 border border-black/15 dark:border-white/15 space-y-4 sm:space-y-5 relative max-h-[90dvh] overflow-y-auto">
-        
-        {/* Mobile handle */}
-        <div className="sm:hidden w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto -mt-1 mb-2 shrink-0" />
+    <div className="md-scrim" onClick={onClose}>
+      <div
+        className="md-bottom-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={routineToEdit ? 'Edit routine stack' : 'New routine stack'}
+      >
+        <div className="md-bottom-sheet__handle" aria-hidden="true" />
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 sm:top-5 right-4 sm:right-5 text-zinc-400 hover:text-black dark:hover:text-white p-2 rounded-xl transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="space-y-1 pr-8">
-          <span className="text-xs sm:text-sm font-mono uppercase tracking-widest text-zinc-500">Routine Stack</span>
-          <h3 className="text-lg sm:text-xl font-black text-black dark:text-white">
-            {routineToEdit ? 'Edit Routine Stack' : 'Create Routine Stack'}
-          </h3>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Routine stack
+            </div>
+            <h2 className="md-headline-small">
+              {routineToEdit ? 'Edit routine' : 'Create routine'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="md-icon-button md-ripple" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Routine Title *
-            </label>
+          <label className="md-text-field">
             <input
+              className="md-text-field__input"
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Morning Priming Ritual"
+              placeholder=" "
               maxLength={100}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-sm focus:outline-none"
             />
-          </div>
+            <span className="md-text-field__label">Routine title</span>
+          </label>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Purpose / Intention
-            </label>
+          <label className="md-text-field md-text-field--textarea">
             <textarea
+              className="md-text-field__input"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Why does this routine matter? (e.g. Circadian alertness, deep focus...)"
+              placeholder=" "
               maxLength={300}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-xs focus:outline-none"
             />
-          </div>
+            <span className="md-text-field__label">Purpose / intention</span>
+          </label>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Time of Day Block
-            </label>
+          <div>
+            <div className="md-label-medium mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Time of day
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'morning', label: 'Morning', icon: <Sun className="w-4 h-4" /> },
-                { id: 'afternoon', label: 'Afternoon', icon: <Zap className="w-4 h-4" /> },
-                { id: 'evening', label: 'Evening', icon: <Moon className="w-4 h-4" /> },
-                { id: 'anytime', label: 'Anytime', icon: <Clock className="w-4 h-4" /> },
-              ].map(block => (
-                <button
-                  key={block.id}
-                  type="button"
-                  onClick={() => setTimeOfDay(block.id as TimeOfDay)}
-                  className={`min-h-[44px] flex items-center gap-2 p-3 rounded-xl border text-xs font-mono font-bold transition-all ${
-                    timeOfDay === block.id
-                      ? 'bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-xs'
-                      : 'glass-button text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
-                  }`}
-                >
-                  {block.icon}
-                  <span>{block.label}</span>
-                </button>
-              ))}
+              {TIME_BLOCKS.map(block => {
+                const selected = timeOfDay === block.id;
+                return (
+                  <button
+                    key={block.id}
+                    type="button"
+                    onClick={() => setTimeOfDay(block.id)}
+                    className={`md-chip md-ripple min-h-[3rem] justify-start${selected ? ' md-chip--selected' : ''}`}
+                    aria-pressed={selected}
+                  >
+                    {selected ? <Check className="w-4 h-4" /> : block.icon}
+                    <span>{block.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Target Days
-            </label>
-            <div className="flex items-center justify-between gap-1 pt-1">
-              {dayLabels.map(d => {
+          <div>
+            <div className="md-label-medium mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Target days
+            </div>
+            <div className="flex items-center justify-between gap-1">
+              {DAYS.map(d => {
                 const active = targetDays.includes(d.num);
                 return (
                   <button
                     key={d.num}
                     type="button"
                     onClick={() => toggleDay(d.num)}
-                    className={`min-h-[40px] flex-1 rounded-xl text-xs font-mono font-bold transition-all ${
-                      active
-                        ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
-                        : 'bg-black/5 dark:bg-white/5 text-zinc-400 hover:text-black dark:hover:text-white'
-                    }`}
+                    className={`md-chip md-chip--round md-ripple flex-1${active ? ' md-chip--selected' : ''}`}
+                    aria-pressed={active}
+                    aria-label={`Toggle day ${d.num}`}
                   >
                     {d.label}
                   </button>
@@ -203,26 +201,20 @@ export const RoutineModal: React.FC<RoutineModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-black/5 dark:border-white/5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl glass-button text-xs font-mono font-bold transition-colors"
-            >
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="md-button md-button--text md-ripple">
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="min-h-[44px] px-5 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-mono font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+              className="md-button md-button--filled md-ripple"
             >
               <Check className="w-4 h-4" />
-              <span>{routineToEdit ? 'Save Changes' : 'Create Routine'}</span>
+              {routineToEdit ? 'Save changes' : 'Create routine'}
             </button>
           </div>
-
         </form>
-
       </div>
     </div>
   );

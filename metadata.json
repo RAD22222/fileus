@@ -1,8 +1,6 @@
 {
   "name": "HabitPulse - Routine & Habit Tracker",
-  "description": "Smart daily routine and habit management platform with progress visualization, device synchronization, push notifications, and social cheer features.",
+  "description": "Smart daily routine and habit management platform with progress visualization, local data backup & restore, push notifications, and social cheer features. 100% local-first, no backend required.",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": []
 }

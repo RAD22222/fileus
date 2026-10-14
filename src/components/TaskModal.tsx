@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-  X,
-  Check,
-  Clock,
-  Calendar,
-} from 'lucide-react';
-import { useAuthAndSync } from '../context/AuthAndSyncContext';
+import { X, Check, Clock, Calendar } from 'lucide-react';
+import { useAppData } from '../context/AppDataContext';
 import { RoutineTask, TaskCategory, TaskPriority } from '../types';
 
 interface TaskModalProps {
@@ -15,13 +10,23 @@ interface TaskModalProps {
   defaultRoutineId?: string;
 }
 
+const DAYS = [
+  { num: 0, label: 'S' },
+  { num: 1, label: 'M' },
+  { num: 2, label: 'T' },
+  { num: 3, label: 'W' },
+  { num: 4, label: 'T' },
+  { num: 5, label: 'F' },
+  { num: 6, label: 'S' },
+];
+
 export const TaskModal: React.FC<TaskModalProps> = ({
   isOpen,
   onClose,
   taskToEdit,
   defaultRoutineId,
 }) => {
-  const { routines, addTask, updateTask } = useAuthAndSync();
+  const { routines, addTask, updateTask } = useAppData();
 
   const [title, setTitle] = useState('');
   const [routineId, setRoutineId] = useState('standalone');
@@ -100,91 +105,87 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
-  const dayLabels = [
-    { num: 0, label: 'S' },
-    { num: 1, label: 'M' },
-    { num: 2, label: 'T' },
-    { num: 3, label: 'W' },
-    { num: 4, label: 'T' },
-    { num: 5, label: 'F' },
-    { num: 6, label: 'S' },
-  ];
+  const sliderProgress = ((durationMinutes - 1) / (120 - 1)) * 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-      <div className="glass-modal rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-7 pb-8 sm:pb-7 border border-black/15 dark:border-white/15 space-y-4 sm:space-y-5 relative max-h-[90dvh] overflow-y-auto">
-        
-        {/* Mobile drag handle affordance */}
-        <div className="sm:hidden w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto -mt-1 mb-2 shrink-0" />
+    <div className="md-scrim" onClick={onClose}>
+      <div
+        className="md-bottom-sheet"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={taskToEdit ? 'Edit habit' : 'New habit'}
+      >
+        <div className="md-bottom-sheet__handle" aria-hidden="true" />
 
-        <button
-          onClick={onClose}
-          className="absolute top-4 sm:top-5 right-4 sm:right-5 text-zinc-400 hover:text-black dark:hover:text-white p-2 rounded-xl transition-colors"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="space-y-1 pr-8">
-          <span className="text-xs sm:text-sm font-mono uppercase tracking-widest text-zinc-500">Protocol Step</span>
-          <h3 className="text-lg sm:text-xl font-black text-black dark:text-white">
-            {taskToEdit ? 'Edit Habit Details' : 'Schedule New Habit'}
-          </h3>
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <div>
+            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Protocol step
+            </div>
+            <h2 className="md-headline-small">
+              {taskToEdit ? 'Edit habit' : 'Schedule habit'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="md-icon-button md-ripple" aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Habit Name *
-            </label>
+          <label className="md-text-field">
             <input
+              className="md-text-field__input"
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. 15-Minute Sunlight Walk"
+              placeholder=" "
               maxLength={120}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
             />
-          </div>
+            <span className="md-text-field__label">Habit name</span>
+          </label>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white">
-              Assigned Routine Stack
-            </label>
+          <label className="md-text-field md-text-field--select">
             <select
+              className="md-text-field__input"
               value={routineId}
               onChange={(e) => setRoutineId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-xs font-mono font-bold focus:outline-none"
             >
-              <option value="standalone">Standalone Daily Task</option>
+              <option value="standalone">Standalone daily task</option>
               {routines.map(r => (
                 <option key={r.id} value={r.id}>
                   {r.title} ({r.timeOfDay})
                 </option>
               ))}
             </select>
-          </div>
+            <span className="md-text-field__label">Routine stack</span>
+            <span className="md-text-field__arrow" aria-hidden="true">
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+          </label>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold text-black dark:text-white flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Time</span>
-              </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="md-text-field">
               <input
+                className="md-text-field__input"
                 type="time"
                 value={scheduledTime}
                 onChange={(e) => setScheduledTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-sm focus:outline-none font-mono"
+                placeholder=" "
               />
-            </div>
+              <span className="md-text-field__label">
+                <Clock className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" />
+                Time
+              </span>
+            </label>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold text-black dark:text-white">
-                Duration ({durationMinutes}m)
-              </label>
+            <div className="flex flex-col justify-end">
+              <div className="md-label-medium mb-1" style={{ color: 'var(--md-on-surface-variant)' }}>
+                Duration · <span className="font-mono">{durationMinutes}m</span>
+              </div>
               <input
                 type="range"
                 min="1"
@@ -192,65 +193,76 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 step="5"
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                className="w-full h-2 bg-black/20 dark:bg-white/20 rounded-lg appearance-none cursor-pointer accent-black dark:accent-white mt-3"
+                className="md-slider"
+                style={{ ['--md-slider-progress' as string]: `${sliderProgress}%` }}
+                aria-label="Duration in minutes"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold text-black dark:text-white">
-                Domain
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as TaskCategory)}
-                className="w-full px-3 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-xs font-mono capitalize focus:outline-none"
-              >
-                <option value="health">Health & Vitality</option>
-                <option value="productivity">Productivity</option>
-                <option value="mindfulness">Mindfulness</option>
-                <option value="fitness">Fitness & Movement</option>
-                <option value="learning">Learning</option>
-                <option value="creativity">Creativity</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+          <label className="md-text-field md-text-field--select">
+            <select
+              className="md-text-field__input"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as TaskCategory)}
+            >
+              <option value="health">Health & Vitality</option>
+              <option value="productivity">Productivity</option>
+              <option value="mindfulness">Mindfulness</option>
+              <option value="fitness">Fitness & Movement</option>
+              <option value="learning">Learning</option>
+              <option value="creativity">Creativity</option>
+              <option value="other">Other</option>
+            </select>
+            <span className="md-text-field__label">Domain</span>
+            <span className="md-text-field__arrow" aria-hidden="true">
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+          </label>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold text-black dark:text-white">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full px-3 py-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-black dark:text-white text-base sm:text-xs font-mono capitalize focus:outline-none"
-              >
-                <option value="high">High (Required)</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low (Bonus)</option>
-              </select>
+          <div>
+            <div className="md-label-medium mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Priority
+            </div>
+            <div className="md-segmented w-full">
+              {([
+                { id: 'high', label: 'High' },
+                { id: 'medium', label: 'Medium' },
+                { id: 'low', label: 'Low' },
+              ] as { id: TaskPriority; label: string }[]).map((p, idx) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPriority(p.id)}
+                  className={`md-segmented__item md-ripple flex-1${priority === p.id ? ' md-segmented__item--selected' : ''}`}
+                  style={idx === 2 ? { borderTopRightRadius: 'var(--md-shape-full)', borderBottomRightRadius: 'var(--md-shape-full)' } : undefined}
+                  aria-pressed={priority === p.id}
+                >
+                  {priority === p.id && <Check className="w-4 h-4" />}
+                  {p.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-mono font-bold text-black dark:text-white flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Active Recurrence Days</span>
-            </label>
-            <div className="flex items-center justify-between gap-1 pt-1">
-              {dayLabels.map(d => {
+          <div>
+            <div className="md-label-medium mb-2 flex items-center gap-1.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+              <Calendar className="w-4 h-4" />
+              Active days
+            </div>
+            <div className="flex items-center justify-between gap-1">
+              {DAYS.map(d => {
                 const active = daysOfWeek.includes(d.num);
                 return (
                   <button
                     key={d.num}
                     type="button"
                     onClick={() => toggleDay(d.num)}
-                    className={`min-h-[40px] flex-1 rounded-xl text-xs font-mono font-bold transition-all ${
-                      active
-                        ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
-                        : 'bg-black/5 dark:bg-white/5 text-zinc-400 hover:text-black dark:hover:text-white'
-                    }`}
+                    className={`md-chip md-chip--round md-ripple flex-1${active ? ' md-chip--selected' : ''}`}
+                    aria-pressed={active}
+                    aria-label={`Toggle day ${d.num}`}
                   >
                     {d.label}
                   </button>
@@ -259,26 +271,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-black/5 dark:border-white/5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl glass-button text-xs font-mono font-bold transition-colors"
-            >
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="md-button md-button--text md-ripple">
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !title.trim()}
-              className="min-h-[44px] px-5 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black text-xs font-mono font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+              className="md-button md-button--filled md-ripple"
             >
               <Check className="w-4 h-4" />
-              <span>{taskToEdit ? 'Save Changes' : 'Schedule Habit'}</span>
+              {taskToEdit ? 'Save changes' : 'Schedule habit'}
             </button>
           </div>
-
         </form>
-
       </div>
     </div>
   );
