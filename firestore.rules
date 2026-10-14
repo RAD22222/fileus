@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global hardened security helpers
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Entity validation functions
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['id', 'email', 'displayName', 'darkMode'])
+        && data.id is string && data.id.size() <= 128 && data.id == request.auth.uid
+        && data.email is string && data.email.size() <= 128
+        && data.displayName is string && data.displayName.size() <= 64
+        && (data.darkMode == 'light' || data.darkMode == 'dark' || data.darkMode == 'system');
+    }
+
+    function isValidRoutine(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'timeOfDay'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+        && (data.timeOfDay == 'morning' || data.timeOfDay == 'afternoon' || data.timeOfDay == 'evening' || data.timeOfDay == 'anytime');
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'category', 'priority'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && (data.category == 'health' || data.category == 'productivity' || data.category == 'mindfulness' || data.category == 'fitness' || data.category == 'learning' || data.category == 'creativity' || data.category == 'other')
+        && (data.priority == 'low' || data.priority == 'medium' || data.priority == 'high');
+    }
+
+    function isValidCompletion(data) {
+      return data.keys().hasAll(['id', 'userId', 'taskId', 'date'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.taskId is string && data.taskId.size() <= 128
+        && data.date is string && data.date.size() <= 12;
+    }
+
+    function isValidCommunityPost(data) {
+      return data.keys().hasAll(['id', 'userId', 'authorName', 'title', 'content'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.authorName is string && data.authorName.size() <= 64
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 600;
+    }
+
+    function isValidCheer(data) {
+      return data.keys().hasAll(['id', 'postId', 'userId', 'userName', 'reaction'])
+        && data.id is string && data.id.size() <= 128
+        && data.postId is string && data.postId.size() <= 128
+        && data.userId is string && data.userId == request.auth.uid
+        && data.userName is string && data.userName.size() <= 64
+        && (data.reaction == 'fire' || data.reaction == 'clap' || data.reaction == 'rocket' || data.reaction == 'muscle' || data.reaction == 'heart');
+    }
+
+    // Collection match rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming());
+      allow delete: if false;
+    }
+
+    match /routines/{routineId} {
+      allow get: if isSignedIn() && isValidId(routineId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(routineId) && incoming().userId == request.auth.uid && isValidRoutine(incoming());
+      allow update: if isSignedIn() && isValidId(routineId) && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidRoutine(incoming());
+      allow delete: if isSignedIn() && isValidId(routineId) && existing().userId == request.auth.uid;
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(taskId) && incoming().userId == request.auth.uid && isValidTask(incoming());
+      allow update: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidTask(incoming());
+      allow delete: if isSignedIn() && isValidId(taskId) && existing().userId == request.auth.uid;
+    }
+
+    match /completions/{completionId} {
+      allow get: if isSignedIn() && isValidId(completionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(completionId) && incoming().userId == request.auth.uid && isValidCompletion(incoming());
+      allow update: if isSignedIn() && isValidId(completionId) && existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidCompletion(incoming());
+      allow delete: if isSignedIn() && isValidId(completionId) && existing().userId == request.auth.uid;
+    }
+
+    match /communityPosts/{postId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(postId) && incoming().userId == request.auth.uid && isValidCommunityPost(incoming());
+      allow update: if isSignedIn() && isValidId(postId) && (
+        (existing().userId == request.auth.uid && incoming().userId == request.auth.uid && isValidCommunityPost(incoming()))
+        || (incoming().diff(existing()).affectedKeys().hasOnly(['cheerCount']) && incoming().cheerCount is number)
+      );
+      allow delete: if isSignedIn() && isValidId(postId) && existing().userId == request.auth.uid;
+
+      match /cheers/{cheerId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(cheerId) && incoming().userId == request.auth.uid && isValidCheer(incoming());
+        allow update, delete: if isSignedIn() && isValidId(cheerId) && existing().userId == request.auth.uid;
+      }
+    }
+  }
+}

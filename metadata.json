@@ -1,0 +1,8 @@
+{
+  "name": "HabitPulse - Routine & Habit Tracker",
+  "description": "Smart daily routine and habit management platform with progress visualization, device synchronization, push notifications, and social cheer features.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,347 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with display settings and sync preferences",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user ID matching auth.uid",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user",
+          "maxLength": 64
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Avatar URL",
+          "maxLength": 512
+        },
+        "syncCode": {
+          "type": "string",
+          "description": "Unique 6-character multi-device sync code",
+          "maxLength": 16
+        },
+        "darkMode": {
+          "type": "string",
+          "description": "Dark mode preference: light, dark, or system",
+          "enum": ["light", "dark", "system"]
+        },
+        "highContrast": {
+          "type": "boolean",
+          "description": "High contrast accessibility flag"
+        },
+        "soundEnabled": {
+          "type": "boolean",
+          "description": "Sound notification flag"
+        },
+        "notificationMinutesBefore": {
+          "type": "number",
+          "description": "Minutes before task to send reminder"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account creation timestamp ISO"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last profile update timestamp ISO"
+        }
+      },
+      "required": ["id", "email", "displayName", "darkMode"]
+    },
+    "Routine": {
+      "title": "Routine",
+      "description": "User-defined routine grouping related tasks",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Routine ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Routine title",
+          "maxLength": 100
+        },
+        "description": {
+          "type": "string",
+          "description": "Routine description",
+          "maxLength": 500
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier",
+          "maxLength": 32
+        },
+        "color": {
+          "type": "string",
+          "description": "Color theme hex or name",
+          "maxLength": 32
+        },
+        "timeOfDay": {
+          "type": "string",
+          "description": "Time of day category",
+          "enum": ["morning", "afternoon", "evening", "anytime"]
+        },
+        "targetDays": {
+          "type": "array",
+          "description": "Active days of week (0=Sunday to 6=Saturday)"
+        },
+        "isArchived": {
+          "type": "boolean",
+          "description": "Whether routine is archived"
+        },
+        "order": {
+          "type": "number",
+          "description": "Sort order priority"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "userId", "title", "timeOfDay"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Individual habit or task within a routine or standalone",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128
+        },
+        "routineId": {
+          "type": "string",
+          "description": "Associated routine ID or 'standalone'",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Task name",
+          "maxLength": 120
+        },
+        "scheduledTime": {
+          "type": "string",
+          "description": "Scheduled time format HH:mm",
+          "maxLength": 10
+        },
+        "durationMinutes": {
+          "type": "number",
+          "description": "Duration in minutes"
+        },
+        "category": {
+          "type": "string",
+          "description": "Task category",
+          "enum": ["health", "productivity", "mindfulness", "fitness", "learning", "creativity", "other"]
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level",
+          "enum": ["low", "medium", "high"]
+        },
+        "daysOfWeek": {
+          "type": "array",
+          "description": "Active days 0 to 6"
+        },
+        "isArchived": {
+          "type": "boolean",
+          "description": "Whether task is archived"
+        },
+        "order": {
+          "type": "number",
+          "description": "Sort order priority"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "userId", "title", "category", "priority"]
+    },
+    "Completion": {
+      "title": "Completion",
+      "description": "Log of a task completed on a specific calendar date",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique completion record ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "User UID who finished the task",
+          "maxLength": 128
+        },
+        "taskId": {
+          "type": "string",
+          "description": "Task ID completed",
+          "maxLength": 128
+        },
+        "date": {
+          "type": "string",
+          "description": "Date format YYYY-MM-DD",
+          "maxLength": 12
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "ISO timestamp of completion"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional user reflections or notes",
+          "maxLength": 300
+        }
+      },
+      "required": ["id", "userId", "taskId", "date"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Shared routine milestone or motivational post for community feed",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Post ID",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Author user UID",
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Author display name",
+          "maxLength": 64
+        },
+        "authorPhoto": {
+          "type": "string",
+          "description": "Author avatar",
+          "maxLength": 512
+        },
+        "title": {
+          "type": "string",
+          "description": "Post headline",
+          "maxLength": 120
+        },
+        "content": {
+          "type": "string",
+          "description": "Post motivational message",
+          "maxLength": 600
+        },
+        "streakCount": {
+          "type": "number",
+          "description": "Streak reached"
+        },
+        "routineName": {
+          "type": "string",
+          "description": "Routine title associated",
+          "maxLength": 100
+        },
+        "cheerCount": {
+          "type": "number",
+          "description": "Total cheer count"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "userId", "authorName", "title", "content"]
+    },
+    "Cheer": {
+      "title": "Cheer",
+      "description": "Motivational reaction to a community post",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Reaction ID",
+          "maxLength": 128
+        },
+        "postId": {
+          "type": "string",
+          "description": "ID of post receiving cheer",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Sender user UID",
+          "maxLength": 128
+        },
+        "userName": {
+          "type": "string",
+          "description": "Sender display name",
+          "maxLength": 64
+        },
+        "reaction": {
+          "type": "string",
+          "description": "Reaction type",
+          "enum": ["fire", "clap", "rocket", "muscle", "heart"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Cheer timestamp"
+        }
+      },
+      "required": ["id", "postId", "userId", "userName", "reaction"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user settings, dark mode preferences, and sync codes"
+    },
+    "/routines/{routineId}": {
+      "schema": "Routine",
+      "description": "User routines"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Scheduled routine tasks and habits"
+    },
+    "/completions/{completionId}": {
+      "schema": "Completion",
+      "description": "Habit completion records for streak calculation"
+    },
+    "/communityPosts/{postId}": {
+      "schema": "CommunityPost",
+      "description": "Shared motivation achievements"
+    },
+    "/communityPosts/{postId}/cheers/{cheerId}": {
+      "schema": "Cheer",
+      "description": "Cheers and reactions for community posts"
+    }
+  }
+}

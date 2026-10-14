@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    color-scheme: light dark;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #fcfcfc;
+    color: #09090b;
+    overflow-x: hidden;
+    width: 100%;
+    min-width: 320px;
+    touch-action: manipulation;
+  }
+
+  html.dark body {
+    background-color: #050507;
+    color: #fafafa;
+  }
+
+  /* High contrast mode for accessibility */
+  html.high-contrast {
+    filter: contrast(1.2);
+  }
+
+  html.high-contrast * {
+    border-color: rgba(115, 115, 115, 0.8) !important;
+  }
+
+  /* Font scale accessibility option */
+  html.text-lg-scale {
+    font-size: 112%;
+  }
+}
+
+/* Scrollbar utilities for mobile touch interfaces */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area padding for mobile notches & home indicator */
+.pb-safe {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+.bottom-safe {
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+/* Glassmorphism Classes for Black & White Monochrome Style */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+}
+
+.dark .glass-surface {
+  background: rgba(18, 18, 22, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.04);
+}
+
+.dark .glass-card {
+  background: rgba(12, 12, 15, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.glass-card:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.glass-modal {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.dark .glass-modal {
+  background: rgba(10, 10, 14, 0.92);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+}
+
+.glass-button {
+  background: rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-button {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Dedicated Ultra-Transparent Glass Dock ("Everytime" visible on mobile with liquid transparency) */
+.glass-dock {
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-dock {
+  background: rgba(8, 8, 12, 0.28);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
