@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className={`md-top-app-bar${scrolled ? ' md-top-app-bar--scrolled' : ''}`}
+      className={`md-top-app-bar flex-wrap${scrolled ? ' md-top-app-bar--scrolled' : ''}`}
       role="banner"
     >
       {/* App logo */}
@@ -83,51 +83,56 @@ export const Header: React.FC<HeaderProps> = ({
           Daily Habit Architecture
         </div>
       </div>
-      <span className="sm:hidden md-title-large ml-2 mr-auto truncate">HabitPulse</span>
+      <span className="sm:hidden md-title-large ml-2 mr-auto truncate min-w-0">HabitPulse</span>
 
       <div className="flex-1 hidden sm:block" />
 
-      {/* Streak — assist chip */}
-      <div
-        className="md-chip md-chip--assist hidden md:inline-flex"
-        title={`Streak: ${todayStats.currentStreak} days`}
-      >
-        <Flame
-          className="w-4 h-4"
-          strokeWidth={2.5}
-          style={{ color: 'var(--md-primary)' }}
-        />
-        <span className="font-mono">{todayStats.currentStreak}d</span>
+      {/* Streak — assist chip (phones: shown in the Today score card instead) */}
+      <div className="hidden md:flex">
+        <div
+          className="md-chip md-chip--assist"
+          title={`Streak: ${todayStats.currentStreak} days`}
+        >
+          <Flame
+            className="w-4 h-4"
+            strokeWidth={2.5}
+            style={{ color: 'var(--md-primary)' }}
+          />
+          <span className="font-mono">{todayStats.currentStreak}d</span>
+        </div>
       </div>
 
-      {/* Date navigation — MD3 segmented button */}
-      <div className="md-segmented" role="group" aria-label="Select date">
-        <button
-          onClick={handlePrevDay}
-          className="md-segmented__item md-ripple px-2"
-          title="Previous Day"
-          aria-label="Previous day"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <button
-          onClick={handleSetToday}
-          className="md-segmented__item md-ripple min-w-[5rem] px-2"
-          title={isSelectedDateToday ? 'Today' : `Selected: ${formatDisplayDate(selectedDate)}`}
-        >
-          <Calendar className="w-4 h-4" />
-          <span className="md-label-large whitespace-nowrap">
-            {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
-          </span>
-        </button>
-        <button
-          onClick={handleNextDay}
-          className="md-segmented__item md-ripple px-2"
-          title="Next Day"
-          aria-label="Next day"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </button>
+      {/* Date navigation — MD3 segmented button
+          Phones: wraps to its own row so nothing overflows the viewport */}
+      <div className="order-last basis-full px-3 pt-1 pb-2 sm:order-none sm:basis-auto sm:p-0">
+        <div className="md-segmented mx-auto" role="group" aria-label="Select date">
+          <button
+            onClick={handlePrevDay}
+            className="md-segmented__item md-ripple px-2 shrink-0"
+            title="Previous Day"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleSetToday}
+            className="md-segmented__item md-ripple flex-1 min-w-0 px-2 sm:min-w-[5rem]"
+            title={isSelectedDateToday ? 'Today' : `Selected: ${formatDisplayDate(selectedDate)}`}
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span className="md-label-large truncate">
+              {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
+            </span>
+          </button>
+          <button
+            onClick={handleNextDay}
+            className="md-segmented__item md-ripple px-2 shrink-0"
+            title="Next Day"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Actions */}
