@@ -26,6 +26,7 @@ import { useAppData } from '../context/AppDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { getAccents } from '../lib/themes';
 import { hapticTick, hapticUndo, hapticNudge, hapticCelebrate } from '../lib/pwa';
+import { addDays, todayLocalStr } from '../lib/date';
 import { DateNavigator } from './DateNavigator';
 import { RoutineTask, TaskCategory, TimeOfDay, Mood } from '../types';
 
@@ -264,11 +265,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   };
 
   // ---- Streak freeze eligibility: yesterday had scheduled habits but is incomplete & unfrozen ----
-  const yesterdayStr = useMemo(() => {
-    const dt = new Date();
-    dt.setDate(dt.getDate() - 1);
-    return dt.toISOString().split('T')[0];
-  }, []);
+  const yesterdayStr = useMemo(() => addDays(todayLocalStr(), -1), []);
   const yesterdayDow = useMemo(
     () => new Date(new Date(yesterdayStr + 'T00:00:00').getTime()).getDay(),
     [yesterdayStr]

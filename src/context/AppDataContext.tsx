@@ -14,6 +14,7 @@ import {
   INITIAL_PRESET_TASKS,
 } from '../data/defaultRoutines';
 import { notificationService } from '../services/notificationService';
+import { localDateStr } from '../lib/date';
 
 export interface AppDataContextType {
   // Stable local identifiers (used for share cards / accountability codes)
@@ -536,7 +537,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     const DAY_MS = 24 * 3600 * 1000;
-    const dateStr = (d: Date) => d.toISOString().split('T')[0];
+    const dateStr = localDateStr;
 
     let currentStreak = 0;
     const todayStr = getTodayString();

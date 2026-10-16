@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { TaskCategory, TimeOfDay, MILESTONES } from '../types';
+import { localDateStr } from '../lib/date';
 
 type Period = 'week' | 'month';
 
@@ -30,7 +31,7 @@ export const AnalyticsVisualizer: React.FC = () => {
   const [period, setPeriod] = useState<Period>('week');
 
   const DAY_MS = 24 * 3600 * 1000;
-  const dateStr = (d: Date) => d.toISOString().split('T')[0];
+  const dateStr = (d: Date) => localDateStr(d);
 
   // ---- Per-day stats over the last 365 days, broken down by time-of-day group ----
   const days = useMemo(() => {

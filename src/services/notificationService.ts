@@ -1,4 +1,5 @@
 // Notification and Web Audio Sound Service
+import { localDateStr } from '../lib/date';
 
 class NotificationService {
   private audioCtx: AudioContext | null = null;
@@ -178,7 +179,7 @@ class NotificationService {
   ) {
     const now = new Date();
     const currentTotalMins = now.getHours() * 60 + now.getMinutes();
-    const todayKey = now.toISOString().split('T')[0];
+    const todayKey = localDateStr(now);
 
     tasks.forEach(task => {
       const isDone = completedIds.has(task.id);

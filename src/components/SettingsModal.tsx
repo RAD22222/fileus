@@ -18,6 +18,7 @@ import { useTheme, COLOR_SCHEMES } from '../context/ThemeContext';
 import { useAppData } from '../context/AppDataContext';
 import { toneHex } from '../lib/dynamicColor';
 import { canPromptInstall, promptInstall, isStandalonePwa } from '../lib/pwa';
+import { todayLocalStr } from '../lib/date';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const url = URL.createObjectURL(jsonBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `HabitPulse-Backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `HabitPulse-Backup-${todayLocalStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setExportSuccess(true);

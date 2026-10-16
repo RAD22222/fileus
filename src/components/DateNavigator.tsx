@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { hapticTick } from '../lib/pwa';
+import { addDays, todayLocalStr } from '../lib/date';
 
 interface DateNavigatorProps {
   /** Stretch the control to the full row width (phone layout) */
@@ -17,7 +18,7 @@ const partsOf = (dateStr: string) => {
   };
 };
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => todayLocalStr();
 
 /**
  * Expressive date pager:
@@ -33,10 +34,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({ fullWidth = false 
   const shift = (delta: 1 | -1) => {
     hapticTick();
     setTravel(delta > 0 ? 'next' : 'prev');
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() + delta);
-    setSelectedDate(date.toISOString().split('T')[0]);
+    setSelectedDate(addDays(selectedDate, delta));
   };
 
   const goToday = () => {
