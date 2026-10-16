@@ -282,6 +282,16 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   }, [streakFreezes, freezeUsedDates, yesterdayStr, yesterdayDow, tasks, completions]);
 
   // ---- Drag reorder ----
+  // One-shot entrance stagger: rows animate in when the tab mounts, then the
+  // animation class is dropped. Without this, a live drag reorder would
+  // restart every row's entrance animation on each swap (changing a row's
+  // animation-delay after the animation finished re-runs it), making the
+  // list flicker / look stuck while dragging.
+  const [entranceDone, setEntranceDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setEntranceDone(true), 800);
+    return () => clearTimeout(t);
+  }, []);
   const [drag, setDrag] = useState<{
     id: string;
     listId: string;
@@ -370,10 +380,10 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
     return (
       <li
         key={task.id}
-        className={`md-item-enter${isDragging ? ' md-item-dragging' : ''}`}
+        className={`${entranceDone ? '' : 'md-item-enter '}${isDragging ? 'md-item-dragging' : ''}`}
         style={{
           ...(isDragging ? { zIndex: 5, position: 'relative' } : undefined),
-          animationDelay: isDragging ? '0ms' : `${Math.min(index * 40, 240)}ms`,
+          ...(entranceDone ? undefined : { animationDelay: `${Math.min(index * 40, 240)}ms` }),
         }}
       >
         {showDivider && <hr className="md-divider" />}
