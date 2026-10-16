@@ -115,7 +115,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh flex flex-col">
       <Header
         scrolled={scrolled}
         onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
@@ -124,7 +124,7 @@ const AppContent: React.FC = () => {
 
       <main
         key={activeTab}
-        className={`relative mx-auto w-full max-w-3xl px-4 pt-3 pb-36 md:pb-10 md:pl-28 md-view-enter-${viewDirection}`}
+        className={`relative mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-24 md:pb-10 md:pl-28 md-view-enter-${viewDirection}`}
       >
         {activeTab === 'today' && (
           <TodaySchedule
@@ -151,14 +151,21 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Floating action button — quick add habit (extended for clarity) */}
-      <button
-        onClick={() => handleOpenAddTask()}
-        className="md-fab md-fab--floating md-fab--extended md-ripple"
-        aria-label="Add new habit"
-      >
-        <Plus className="w-5 h-5" strokeWidth={2.5} />
-        Add habit
-      </button>
+      {/* Dock — sticky bottom overlay. Sticky (not fixed) sidesteps Android
+          Chrome's fixed-bottom repositioning bugs during content swaps. */}
+      <div className="sticky bottom-0 z-30 pointer-events-none md:hidden">
+        <button
+          onClick={() => handleOpenAddTask()}
+          className="md-fab md-fab--floating md-fab--extended md-ripple pointer-events-auto"
+          aria-label="Add new habit"
+        >
+          <Plus className="w-5 h-5" strokeWidth={2.5} />
+          Add habit
+        </button>
+        <nav className="md-nav-bar md-nav-bar--sticky pointer-events-auto" aria-label="Primary">
+          {NAV_ITEMS.map(item => renderNavItem(item))}
+        </nav>
+      </div>
 
       {/* Navigation rail — tablets & desktop (MD3) */}
       <nav className="md-nav-rail" aria-label="Primary">
@@ -170,11 +177,6 @@ const AppContent: React.FC = () => {
           <Plus className="w-5 h-5" strokeWidth={2.5} />
         </button>
         {NAV_ITEMS.map(item => renderNavItem(item, true))}
-      </nav>
-
-      {/* Navigation bar — mobile (MD3) */}
-      <nav className="md-nav-bar md:hidden" aria-label="Primary">
-        {NAV_ITEMS.map(item => renderNavItem(item))}
       </nav>
 
       <InAppNotificationToast />

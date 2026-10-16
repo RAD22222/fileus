@@ -923,20 +923,18 @@
    Navigation bar (mobile) + navigation rail (desktop)
    ========================================================================== */
 .md-nav-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
   display: flex;
   align-items: stretch;
   justify-content: space-around;
   height: 5rem;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--md-surface-container);
-  /* Own compositor layer: keeps the bar glued to the visual viewport on
-     Android while the browser UI (URL bar) shows/hides during scrolls. */
-  will-change: transform;
+}
+/* Sticky bottom dock: immune to Android's fixed-bottom viewport bugs
+   (works identically in browser, installed PWA, and Samsung Internet). */
+.md-nav-bar--sticky {
+  position: sticky;
+  bottom: 0;
 }
 .md-nav-item {
   flex: 1;
@@ -1017,11 +1015,10 @@
 
 /* Floating FAB — sits above the mobile navigation bar */
 .md-fab--floating {
-  position: fixed;
+  position: absolute;
   right: 1rem;
-  bottom: calc(5rem + 1rem + env(safe-area-inset-bottom));
+  bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
   z-index: 35;
-  will-change: transform;
 }
 @media (min-width: 768px) {
   .md-fab--floating { display: none; }
