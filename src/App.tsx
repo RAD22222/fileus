@@ -89,7 +89,7 @@ const AppContent: React.FC = () => {
         aria-label={item.label}
       >
         <span className="md-nav-item__indicator">
-          <Icon className="w-6 h-6" strokeWidth={active ? 2.4 : 2} />
+          <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 2} />
         </span>
         <span className="md-nav-item__label md-label-medium">{item.label}</span>
       </button>
@@ -129,13 +129,14 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Floating action button — quick add habit */}
+      {/* Floating action button — quick add habit (extended for clarity) */}
       <button
         onClick={() => handleOpenAddTask()}
-        className="md-fab md-fab--floating md-ripple"
+        className="md-fab md-fab--floating md-fab--extended md-ripple"
         aria-label="Add new habit"
       >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
+        <Plus className="w-5 h-5" strokeWidth={2.5} />
+        Add habit
       </button>
 
       {/* Navigation rail — tablets & desktop (MD3) */}
@@ -145,7 +146,7 @@ const AppContent: React.FC = () => {
           className="md-fab md-ripple"
           aria-label="Add new habit"
         >
-          <Plus className="w-6 h-6" strokeWidth={2.5} />
+          <Plus className="w-5 h-5" strokeWidth={2.5} />
         </button>
         {NAV_ITEMS.map(item => renderNavItem(item, true))}
       </nav>

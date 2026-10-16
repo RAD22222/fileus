@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="hidden sm:block ml-2 mr-1 min-w-0">
         <div className="md-title-large leading-tight truncate">HabitPulse</div>
         <div className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-          Daily Habit Architecture
+          Track your daily habits
         </div>
       </div>
       <span className="sm:hidden md-title-large ml-2 mr-auto truncate min-w-0">HabitPulse</span>
@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
             strokeWidth={2.5}
             style={{ color: 'var(--md-primary)' }}
           />
-          <span className="font-mono">{todayStats.currentStreak}d</span>
+          <span>{todayStats.currentStreak}d</span>
         </div>
       </div>
 
@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         title={isDark ? 'Light Mode' : 'Dark Mode'}
         aria-label="Toggle dark mode"
       >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        {isDark ? <Sun className="w-[1.125rem] h-[1.125rem]" /> : <Moon className="w-[1.125rem] h-[1.125rem]" />}
       </button>
       <button
         onClick={onOpenNotificationModal}
@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
         title="Notifications"
         aria-label="Push notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-[1.125rem] h-[1.125rem]" />
         <span
           className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full"
           style={{ background: 'var(--md-primary)' }}
@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
         title="Settings"
         aria-label="Settings"
       >
-        <Sliders className="w-5 h-5" />
+        <Sliders className="w-[1.125rem] h-[1.125rem]" />
       </button>
     </header>
   );

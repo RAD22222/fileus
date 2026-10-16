@@ -127,10 +127,10 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
       <section className="md-card md-card--elevated space-y-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="md-label-medium uppercase tracking-wider truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
+            <div className="md-label-medium truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
               {targetDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
             </div>
-            <div className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+            <div className="md-label-large mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
               {todayStats.completedCount} of {todayStats.totalTasks} done
             </div>
           </div>
@@ -139,7 +139,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
             title={`${todayStats.currentStreak}-day streak`}
           >
             <Flame className="w-4 h-4" strokeWidth={2.5} style={{ color: 'var(--md-primary)' }} />
-            <span className="font-mono">{todayStats.currentStreak}d streak</span>
+            <span>{todayStats.currentStreak}-day streak</span>
           </div>
         </div>
 
@@ -147,12 +147,12 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           <div className="md-display-small font-mono leading-none shrink-0" style={{ color: 'var(--md-primary)' }}>
             {percent}%
           </div>
-          <h2 className="md-headline-small text-right min-w-0">
+          <h2 className="md-title-large text-right min-w-0">
             {percent === 100 && todayStats.totalTasks > 0
-              ? 'Protocol complete'
+              ? 'All habits done'
               : percent >= 50
-              ? 'Over halfway there'
-              : `Today's protocol`}
+              ? 'Halfway there'
+              : `Today's schedule`}
           </h2>
         </div>
 
@@ -164,9 +164,9 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           <p
             className="md-body-small flex-1 min-w-0 truncate"
             style={{ color: 'var(--md-on-surface-variant)' }}
-            title="Consistency compounds. Small disciplines repeated daily build unstoppable momentum."
+            title="Consistency compounds. Small steps repeated daily build lasting momentum."
           >
-            Consistency compounds. Small disciplines repeated daily build unstoppable momentum.
+            Consistency compounds. Small steps repeated daily build lasting momentum.
           </p>
           <button onClick={onOpenShareModal} className="md-button md-button--text md-ripple shrink-0">
             <Share2 className="w-4 h-4" />
@@ -210,24 +210,24 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
         </label>
       </section>
 
-      {/* Task list — flat MD3 list with dividers */}
+      {/* Task list — flat MD3 list with dividers; tap a row to edit it */}
       {sortedDayTasks.length === 0 ? (
         <section className="md-card md-card--outlined text-center space-y-3 py-10">
           <div
-            className="w-12 h-12 rounded-full mx-auto flex items-center justify-center"
+            className="w-10 h-10 rounded-full mx-auto flex items-center justify-center"
             style={{ background: 'var(--md-secondary-container)', color: 'var(--md-on-secondary-container)' }}
           >
-            <Compass className="w-6 h-6" />
+            <Compass className="w-5 h-5" />
           </div>
           <div>
             <h3 className="md-title-medium">No habits for this filter</h3>
             <p className="md-body-medium mt-1" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Add a routine step or reset filters to see your schedule.
+              Add a habit or reset filters to see your schedule.
             </p>
           </div>
           <button onClick={() => onOpenAddTaskModal()} className="md-button md-button--filled md-ripple">
             <Plus className="w-4 h-4" />
-            Create first habit
+            Create habit
           </button>
         </section>
       ) : (
@@ -255,30 +255,32 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
                     </span>
                   </button>
 
-                  <div className="flex flex-col items-center justify-center w-12 shrink-0 font-mono text-center">
-                    <span className="md-label-large">{task.scheduledTime || '--:--'}</span>
-                    <span className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-                      {task.durationMinutes}m
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0 pl-1">
+                  <button
+                    onClick={() => onOpenEditTaskModal(task)}
+                    className="flex flex-col md-ripple rounded-lg text-left flex-1 min-w-0 pl-1 pr-2 py-1.5"
+                    title="Tap to edit this habit"
+                    aria-label={`Edit ${task.title}`}
+                  >
                     <span
-                      className="md-body-large block truncate"
+                      className="md-body-large block truncate w-full"
                       style={isCompleted ? { textDecoration: 'line-through', color: 'var(--md-on-surface-variant)' } : undefined}
                     >
                       {task.title}
                     </span>
-                    <div
-                      className="md-body-medium truncate mt-0.5"
+                    <span
+                      className="md-body-small block truncate w-full mt-0.5 text-left"
                       style={{ color: 'var(--md-on-surface-variant)' }}
                     >
-                      {parentRoutine ? `${parentRoutine.title} · ` : ''}
+                      <span className="font-mono">{task.scheduledTime || '--:--'}</span>
+                      {' · '}
+                      {task.durationMinutes}m
+                      {parentRoutine ? ` · ${parentRoutine.title}` : ''}
+                      {' · '}
                       <span className="capitalize">{task.category}</span>
                       {' · '}
-                      <span className="uppercase font-mono md-label-small">{task.priority}</span>
-                    </div>
-                  </div>
+                      <span className="capitalize">{task.priority}</span>
+                    </span>
+                  </button>
 
                   <div className="relative shrink-0 self-center">
                     <button
@@ -288,7 +290,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
                       aria-label={`Options for ${task.title}`}
                       aria-expanded={menuOpen}
                     >
-                      <MoreVertical className="w-5 h-5" />
+                      <MoreVertical className="w-[1.125rem] h-[1.125rem]" />
                     </button>
                     {menuOpen && (
                       <>
@@ -325,13 +327,13 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
       {percent === 100 && todayStats.totalTasks > 0 && (
         <section className="md-card md-card--elevated flex flex-col sm:flex-row items-center gap-3">
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
           >
-            <Sparkles className="w-6 h-6" />
+            <Sparkles className="w-5 h-5" />
           </div>
           <div className="flex-1 text-center sm:text-left">
-            <h3 className="md-title-medium">Daily victory achieved</h3>
+            <h3 className="md-title-medium">All done for today</h3>
             <p className="md-body-small mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
               All {todayStats.totalTasks} scheduled habits done. Your {todayStats.currentStreak}-day streak is secured.
             </p>

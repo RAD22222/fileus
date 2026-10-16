@@ -120,8 +120,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
         <div className="flex items-start justify-between gap-2 mb-4">
           <div>
-            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Protocol step
+            <div className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Habit
             </div>
             <h2 className="md-headline-small">
               {taskToEdit ? 'Edit habit' : 'Schedule habit'}

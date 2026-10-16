@@ -51,8 +51,8 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
 
         <div className="flex items-start justify-between gap-2 mb-4">
           <div>
-            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Social victory
+            <div className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Share progress
             </div>
             <h2 className="md-headline-small">Share a habit win</h2>
           </div>
@@ -96,7 +96,7 @@ export const NewPostModal: React.FC<NewPostModalProps> = ({
                   {r.title}
                 </option>
               ))}
-              <option value="Daily Routine Protocol">General protocol</option>
+              <option value="Daily Routine Protocol">General</option>
             </select>
             <span className="md-text-field__label">Associated routine</span>
             <span className="md-text-field__arrow" aria-hidden="true">

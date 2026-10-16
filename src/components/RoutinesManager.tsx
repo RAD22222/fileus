@@ -89,9 +89,9 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
       {/* Header — flat on the surface */}
       <section className="flex items-center justify-between gap-3 pt-1">
         <div className="min-w-0">
-          <h2 className="md-headline-small truncate">Routine stacks</h2>
+          <h2 className="md-headline-small truncate">Routines</h2>
           <p className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
-            Habit chains that execute on autopilot
+            Group habits into repeatable routines
           </p>
         </div>
         <button
@@ -279,9 +279,9 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
       {/* Curated templates */}
       <section className="space-y-3 pt-2">
         <div>
-          <h3 className="md-title-large">Protocol blueprints</h3>
+          <h3 className="md-title-large">Routine templates</h3>
           <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-            Proven habit frameworks — adopt them into your schedule in one tap
+            Ready-made routines — add any of them to your schedule in one tap
           </p>
         </div>
 
@@ -290,7 +290,7 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
             <article key={tpl.id} className="md-card md-card--filled flex flex-col space-y-3">
               <div className="space-y-1">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+                  <span className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
                     {tpl.category} · {tpl.timeOfDay}
                   </span>
                   <span className="md-label-small shrink-0" style={{ color: 'var(--md-on-surface-variant)' }}>
@@ -329,10 +329,10 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
                   className="md-button md-button--filled md-ripple"
                 >
                   {importingTemplateId === tpl.id ? (
-                    'Adopting…'
+                    'Adding…'
                   ) : (
                     <>
-                      Adopt protocol
+                      Add to schedule
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

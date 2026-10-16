@@ -91,7 +91,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <div className="flex items-start justify-between gap-2 mb-4">
           <div>
-            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
+            <div className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
               Preferences
             </div>
             <h2 className="md-headline-small">Settings</h2>

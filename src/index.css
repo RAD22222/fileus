@@ -148,11 +148,11 @@
 /* ==========================================================================
    MD3 typography scale
    ========================================================================== */
-.md-display-small { font-size: 2.25rem; line-height: 2.75rem; font-weight: 400; letter-spacing: 0; }
-.md-headline-large { font-size: 2rem; line-height: 2.5rem; font-weight: 400; }
-.md-headline-medium { font-size: 1.75rem; line-height: 2.25rem; font-weight: 400; }
-.md-headline-small { font-size: 1.5rem; line-height: 2rem; font-weight: 400; }
-.md-title-large { font-size: 1.375rem; line-height: 1.75rem; font-weight: 400; }
+.md-display-small { font-size: 1.875rem; line-height: 2.25rem; font-weight: 500; letter-spacing: -0.01rem; }
+.md-headline-large { font-size: 1.75rem; line-height: 2.25rem; font-weight: 400; }
+.md-headline-medium { font-size: 1.5rem; line-height: 2rem; font-weight: 400; }
+.md-headline-small { font-size: 1.25rem; line-height: 1.75rem; font-weight: 500; }
+.md-title-large { font-size: 1.25rem; line-height: 1.75rem; font-weight: 500; }
 .md-title-medium { font-size: 1rem; line-height: 1.5rem; font-weight: 500; letter-spacing: 0.009rem; }
 .md-title-small { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; letter-spacing: 0.006rem; }
 .md-body-large { font-size: 1rem; line-height: 1.5rem; font-weight: 400; letter-spacing: 0.031rem; }

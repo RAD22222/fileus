@@ -77,7 +77,7 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
 
     ctx.fillStyle = '#7be193';
     ctx.font = 'bold 26px "Roboto Mono", monospace';
-    ctx.fillText('HABITPULSE // PROTOCOL', 115, 130);
+    ctx.fillText('HABITPULSE', 115, 130);
 
     ctx.fillStyle = 'rgba(190, 202, 192, 0.7)';
     ctx.font = '22px "Roboto", sans-serif';
@@ -106,7 +106,7 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     ctx.fillText(`${todayStats.currentStreak}`, 140, 530);
 
     ctx.font = 'bold 32px "Roboto", sans-serif';
-    ctx.fillText('DAY CONTINUOUS STREAK', 145, 600);
+    ctx.fillText('DAY STREAK', 145, 600);
 
     ctx.fillStyle = 'rgba(224, 228, 224, 0.7)';
     ctx.font = '28px "Roboto", sans-serif';
@@ -156,9 +156,9 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
       {/* Header — flat on the surface */}
       <section className="flex items-center justify-between gap-3 pt-1">
         <div className="min-w-0">
-          <h2 className="md-headline-small truncate">Social motivation</h2>
+          <h2 className="md-headline-small truncate">Community</h2>
           <p className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
-            Share wins, cheer friends, stay accountable
+            Share progress and cheer each other on
           </p>
         </div>
         <button
@@ -264,7 +264,7 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
                 className="px-2.5 py-1 rounded-full font-mono font-bold"
                 style={{ background: 'rgba(123,225,147,0.12)', color: '#7be193' }}
               >
-                HABITPULSE // PROTOCOL
+                HABITPULSE
               </span>
               <span style={{ color: 'rgba(190,202,192,0.7)' }}>
                 {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -276,7 +276,7 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
                 Habit Architect
               </h4>
               <p className="md-label-medium mt-0.5" style={{ color: 'rgba(190,202,192,0.7)' }}>
-                CONTINUOUS PROTOCOL
+                Day streak progress
               </p>
             </div>
 
@@ -368,10 +368,10 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
 
           <div className="md-card md-card--filled flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <span className="md-label-medium uppercase tracking-wider block" style={{ color: 'var(--md-on-surface-variant)' }}>
+              <span className="md-label-medium block" style={{ color: 'var(--md-on-surface-variant)' }}>
                 Your accountability code
               </span>
-              <div className="md-display-small font-mono tracking-widest" style={{ color: 'var(--md-primary)' }}>
+              <div className="md-headline-medium font-mono tracking-widest" style={{ color: 'var(--md-primary)' }}>
                 {syncCode}
               </div>
             </div>

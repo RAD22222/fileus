@@ -138,7 +138,7 @@ export const AnalyticsVisualizer: React.FC = () => {
       label: 'Configured',
       value: tasks.filter(t => !t.isArchived).length,
       unit: 'habits',
-      hint: 'Active protocol',
+      hint: 'In your schedule',
       icon: <TrendingUp className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />,
     },
   ];
@@ -154,7 +154,7 @@ export const AnalyticsVisualizer: React.FC = () => {
           </p>
         </div>
         <span className="md-chip md-chip--assist shrink-0">
-          <span className="font-mono">Adherence {consistencyScore}%</span>
+          <span>Adherence {consistencyScore}%</span>
         </span>
       </section>
 
@@ -174,7 +174,7 @@ export const AnalyticsVisualizer: React.FC = () => {
               </span>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="md-headline-medium font-mono">{m.value}</span>
+              <span className="md-headline-medium">{m.value}</span>
               <span className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
                 {m.unit}
               </span>

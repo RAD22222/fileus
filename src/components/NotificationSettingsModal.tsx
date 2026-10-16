@@ -78,8 +78,8 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
 
         <div className="flex items-start justify-between gap-2 mb-4">
           <div>
-            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Alerts &amp; audio
+            <div className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Alerts
             </div>
             <h2 className="md-headline-small">Notifications</h2>
           </div>
