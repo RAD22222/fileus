@@ -10,6 +10,8 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
+import { COLOR_SCHEME_ACCENTS, hexToRgba } from '../lib/themes';
 import { CheerReaction } from '../types';
 
 interface SocialMotivationProps {
@@ -25,6 +27,8 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     todayStats,
     syncCode,
   } = useAppData();
+  const { colorScheme } = useTheme();
+  const accents = COLOR_SCHEME_ACCENTS[colorScheme];
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedShareText, setCopiedShareText] = useState(false);
@@ -55,31 +59,31 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     canvas.width = 1080;
     canvas.height = 1080;
 
-    // MD3 dark surface palette (green)
-    ctx.fillStyle = '#121412';
+    // MD3 dark-scheme surface palette, following the active color scheme
+    ctx.fillStyle = accents.posterBg;
     ctx.fillRect(0, 0, 1080, 1080);
 
     const grad = ctx.createRadialGradient(540, 540, 100, 540, 540, 600);
-    grad.addColorStop(0, 'rgba(123, 225, 147, 0.10)');
+    grad.addColorStop(0, hexToRgba(accents.primaryDark, 0.10));
     grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 1080, 1080);
 
-    ctx.strokeStyle = 'rgba(224, 228, 224, 0.15)';
+    ctx.strokeStyle = hexToRgba(accents.posterText, 0.15);
     ctx.lineWidth = 2;
     ctx.strokeRect(50, 50, 980, 980);
 
     // Brand chip
-    ctx.fillStyle = 'rgba(123, 225, 147, 0.12)';
+    ctx.fillStyle = hexToRgba(accents.primaryDark, 0.12);
     ctx.beginPath();
     ctx.roundRect(90, 90, 360, 60, 30);
     ctx.fill();
 
-    ctx.fillStyle = '#7be193';
+    ctx.fillStyle = accents.primaryDark;
     ctx.font = 'bold 26px "Roboto Mono", monospace';
     ctx.fillText('HABITPULSE', 115, 130);
 
-    ctx.fillStyle = 'rgba(190, 202, 192, 0.7)';
+    ctx.fillStyle = hexToRgba(accents.posterText, 0.4);
     ctx.font = '22px "Roboto", sans-serif';
     const dateText = new Date().toLocaleDateString(undefined, {
       month: 'short',
@@ -88,7 +92,7 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     });
     ctx.fillText(dateText.toUpperCase(), 90, 220);
 
-    ctx.fillStyle = '#e0e4e0';
+    ctx.fillStyle = accents.posterText;
     ctx.font = 'bold 50px "Roboto", sans-serif';
     ctx.fillText('Habit Architect', 90, 290);
 
@@ -97,35 +101,35 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     ctx.beginPath();
     ctx.roundRect(90, 350, 900, 310, 28);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(224, 228, 224, 0.2)';
+    ctx.strokeStyle = hexToRgba(accents.posterText, 0.2);
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = '#7be193';
+    ctx.fillStyle = accents.primaryDark;
     ctx.font = 'bold 150px "Roboto Mono", monospace';
     ctx.fillText(`${todayStats.currentStreak}`, 140, 530);
 
     ctx.font = 'bold 32px "Roboto", sans-serif';
     ctx.fillText('DAY STREAK', 145, 600);
 
-    ctx.fillStyle = 'rgba(224, 228, 224, 0.7)';
+    ctx.fillStyle = hexToRgba(accents.posterText, 0.7);
     ctx.font = '28px "Roboto", sans-serif';
     ctx.fillText(`Adherence: ${todayStats.completionPercentage}%`, 620, 510);
     ctx.fillText(`Best Streak: ${todayStats.bestStreak} Days`, 620, 570);
 
-    ctx.fillStyle = '#eef2ef';
+    ctx.fillStyle = accents.posterSubtext;
     ctx.font = 'italic 32px "Roboto", sans-serif';
     ctx.fillText(`"${selectedQuote}"`, 90, 750);
 
-    ctx.fillStyle = 'rgba(123, 225, 147, 0.1)';
+    ctx.fillStyle = hexToRgba(accents.primaryDark, 0.1);
     ctx.beginPath();
     ctx.roundRect(90, 890, 900, 90, 16);
     ctx.fill();
 
-    ctx.fillStyle = '#e0e4e0';
+    ctx.fillStyle = accents.posterText;
     ctx.font = 'bold 24px "Roboto Mono", monospace';
     ctx.fillText(`SYNC CODE: ${syncCode}`, 130, 946);
-    ctx.fillStyle = '#7be193';
+    ctx.fillStyle = accents.primaryDark;
     ctx.fillText('HABITPULSE.APP', 720, 946);
 
     const imageURL = canvas.toDataURL('image/png');
@@ -257,16 +261,16 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
           {/* Live preview */}
           <div
             className="rounded-3xl p-5 mx-auto w-full max-w-sm"
-            style={{ background: '#121412', color: '#e0e4e0' }}
+            style={{ background: accents.posterBg, color: accents.posterText }}
           >
             <div className="flex items-center justify-between md-label-medium">
               <span
                 className="px-2.5 py-1 rounded-full font-mono font-bold"
-                style={{ background: 'rgba(123,225,147,0.12)', color: '#7be193' }}
+                style={{ background: hexToRgba(accents.primaryDark, 0.12), color: accents.primaryDark }}
               >
                 HABITPULSE
               </span>
-              <span style={{ color: 'rgba(190,202,192,0.7)' }}>
+              <span style={{ color: hexToRgba(accents.posterText, 0.6) }}>
                 {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </span>
             </div>
@@ -275,22 +279,22 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
               <h4 className="md-headline-small" style={{ color: '#ffffff' }}>
                 Habit Architect
               </h4>
-              <p className="md-label-medium mt-0.5" style={{ color: 'rgba(190,202,192,0.7)' }}>
+              <p className="md-label-medium mt-0.5" style={{ color: hexToRgba(accents.posterText, 0.6) }}>
                 Day streak progress
               </p>
             </div>
 
             <div
               className="my-4 p-4 rounded-2xl flex items-center justify-between"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(224,228,224,0.2)' }}
+              style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${hexToRgba(accents.posterText, 0.2)}` }}
             >
               <div className="flex items-center gap-3">
-                <Flame className="w-8 h-8" strokeWidth={2.5} style={{ color: '#7be193', fill: '#7be193' }} />
+                <Flame className="w-8 h-8" strokeWidth={2.5} style={{ color: accents.primaryDark, fill: accents.primaryDark }} />
                 <div>
-                  <div className="md-headline-medium font-mono" style={{ color: '#7be193' }}>
+                  <div className="md-headline-medium font-mono" style={{ color: accents.primaryDark }}>
                     {todayStats.currentStreak}
                   </div>
-                  <div className="md-label-small" style={{ color: 'rgba(190,202,192,0.7)' }}>
+                  <div className="md-label-small" style={{ color: hexToRgba(accents.posterText, 0.6) }}>
                     DAY STREAK
                   </div>
                 </div>
@@ -299,22 +303,22 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
                 <div className="md-title-large font-mono" style={{ color: '#ffffff' }}>
                   {todayStats.completionPercentage}%
                 </div>
-                <div className="md-label-small" style={{ color: 'rgba(190,202,192,0.7)' }}>
+                <div className="md-label-small" style={{ color: hexToRgba(accents.posterText, 0.6) }}>
                   SCORE
                 </div>
               </div>
             </div>
 
-            <p className="md-body-medium italic" style={{ color: '#eef2ef' }}>
+            <p className="md-body-medium italic" style={{ color: accents.posterSubtext }}>
               &quot;{selectedQuote}&quot;
             </p>
 
             <div
               className="mt-4 flex items-center justify-between md-label-small pt-3 font-mono"
-              style={{ color: 'rgba(190,202,192,0.7)', borderTop: '1px solid rgba(224,228,224,0.15)' }}
+              style={{ color: hexToRgba(accents.posterText, 0.6), borderTop: `1px solid ${hexToRgba(accents.posterText, 0.15)}` }}
             >
               <span>CODE: {syncCode}</span>
-              <span style={{ color: '#7be193' }}>HABITPULSE.APP</span>
+              <span style={{ color: accents.primaryDark }}>HABITPULSE.APP</span>
             </div>
           </div>
 

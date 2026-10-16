@@ -111,6 +111,70 @@
     --md-scrim: rgba(0, 0, 0, 0.6);
   }
 
+  /* ---- Android Blue source (light) ---- */
+  html[data-color="blue"] {
+    --md-primary: #2a5da6;
+    --md-on-primary: #ffffff;
+    --md-primary-container: #d2e4ff;
+    --md-on-primary-container: #001749;
+    --md-secondary: #4f5f78;
+    --md-on-secondary: #ffffff;
+    --md-secondary-container: #d2e4ff;
+    --md-on-secondary-container: #0e1c30;
+    --md-tertiary: #655483;
+    --md-on-tertiary: #ffffff;
+    --md-tertiary-container: #e7dcff;
+    --md-on-tertiary-container: #221039;
+
+    --md-surface: #f7f9fd;
+    --md-on-surface: #1a1c1e;
+    --md-surface-variant: #dce3ed;
+    --md-on-surface-variant: #424750;
+    --md-surface-container-lowest: #ffffff;
+    --md-surface-container-low: #f1f4f7;
+    --md-surface-container: #eceef1;
+    --md-surface-container-high: #e6e8ec;
+    --md-surface-container-highest: #e0e3e6;
+
+    --md-outline: #717881;
+    --md-outline-variant: #c0c7d1;
+    --md-inverse-surface: #2f3033;
+    --md-inverse-on-surface: #eff1f4;
+    --md-inverse-primary: #a4c9ff;
+  }
+
+  /* ---- Android Blue source (dark) ---- */
+  html.dark[data-color="blue"] {
+    --md-primary: #a4c9ff;
+    --md-on-primary: #002c6d;
+    --md-primary-container: #10448b;
+    --md-on-primary-container: #d2e4ff;
+    --md-secondary: #b5c8e4;
+    --md-on-secondary: #223147;
+    --md-secondary-container: #38485f;
+    --md-on-secondary-container: #d2e4ff;
+    --md-tertiary: #cebcf1;
+    --md-on-tertiary: #372650;
+    --md-tertiary-container: #4d3d69;
+    --md-on-tertiary-container: #e7dcff;
+
+    --md-surface: #121416;
+    --md-on-surface: #e0e3e6;
+    --md-surface-variant: #424750;
+    --md-on-surface-variant: #c0c7d1;
+    --md-surface-container-lowest: #0f1012;
+    --md-surface-container-low: #1a1c1e;
+    --md-surface-container: #1e2022;
+    --md-surface-container-high: #282a2c;
+    --md-surface-container-highest: #333537;
+
+    --md-outline: #8b919b;
+    --md-outline-variant: #424750;
+    --md-inverse-surface: #e0e3e6;
+    --md-inverse-on-surface: #2f3033;
+    --md-inverse-primary: #2a5da6;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;

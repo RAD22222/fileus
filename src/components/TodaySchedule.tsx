@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAppData } from '../context/AppDataContext';
+import { useTheme } from '../context/ThemeContext';
+import { COLOR_SCHEME_ACCENTS } from '../lib/themes';
 import { DateNavigator } from './DateNavigator';
 import { RoutineTask, TaskCategory, TimeOfDay } from '../types';
 
@@ -87,15 +89,8 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   onOpenEditTaskModal,
   onOpenShareModal,
 }) => {
-  const {
-    routines,
-    tasks,
-    completions,
-    selectedDate,
-    toggleTaskCompletion,
-    deleteTask,
-    todayStats,
-  } = useAppData();
+  const { routines, tasks, completions, selectedDate, toggleTaskCompletion, deleteTask, todayStats } = useAppData();
+  const { colorScheme } = useTheme();
 
   const [timeFilter, setTimeFilter] = useState<'all' | TimeOfDay>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | TaskCategory>('all');
@@ -153,7 +148,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           particleCount: 80,
           spread: 60,
           origin: { y: 0.6 },
-          colors: ['#007232', '#7be193', '#98feaf', '#4c6651', '#ffffff'],
+          colors: COLOR_SCHEME_ACCENTS[colorScheme].confetti,
         });
       } catch (err) {
         console.warn('Confetti error:', err);

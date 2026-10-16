@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeMode } from '../types';
+import { ColorScheme } from '../lib/themes';
+
+export const COLOR_SCHEMES: ColorScheme[] = ['green', 'blue'];
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -10,6 +13,8 @@ interface ThemeContextType {
   fontSize: 'normal' | 'large';
   setFontSize: (size: 'normal' | 'large') => void;
   toggleDarkQuick: () => void;
+  colorScheme: ColorScheme;
+  setColorScheme: (scheme: ColorScheme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,6 +22,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     return (localStorage.getItem('habitpulse_theme') as ThemeMode) || 'system';
+  });
+
+  const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
+    return (localStorage.getItem('habitpulse_color_scheme') as ColorScheme) || 'green';
   });
 
   const [highContrast, setHighContrastState] = useState<boolean>(() => {
@@ -61,6 +70,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('habitpulse_high_contrast', String(highContrast));
   }, [highContrast]);
 
+  // Color scheme (Material You source palette) → data attribute on <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    if (colorScheme === 'green') {
+      root.removeAttribute('data-color');
+    } else {
+      root.setAttribute('data-color', colorScheme);
+    }
+    localStorage.setItem('habitpulse_color_scheme', colorScheme);
+  }, [colorScheme]);
+
   useEffect(() => {
     const root = document.documentElement;
     if (fontSize === 'large') {
@@ -84,6 +104,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setFontSizeState(size);
   };
 
+  const setColorScheme = (scheme: ColorScheme) => {
+    setColorSchemeState(scheme);
+  };
+
   const toggleDarkQuick = () => {
     setTheme(isDark ? 'light' : 'dark');
   };
@@ -99,6 +123,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         fontSize,
         setFontSize,
         toggleDarkQuick,
+        colorScheme,
+        setColorScheme,
       }}
     >
       {children}

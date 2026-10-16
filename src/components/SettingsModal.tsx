@@ -34,6 +34,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setHighContrast,
     fontSize,
     setFontSize,
+    colorScheme,
+    setColorScheme,
   } = useTheme();
 
   const { exportBackup, importBackup } = useAppData();
@@ -143,6 +145,73 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               ))}
             </div>
+          </section>
+
+          {/* Color scheme (Material You source palette) */}
+          <section>
+            <h3 className="md-title-small mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Color
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                {
+                  id: 'green' as const,
+                  label: 'Meadow',
+                  primary: '#007232',
+                  primaryDark: '#7be193',
+                  container: '#98feaf',
+                },
+                {
+                  id: 'blue' as const,
+                  label: 'Android Blue',
+                  primary: '#2a5da6',
+                  primaryDark: '#a4c9ff',
+                  container: '#d2e4ff',
+                },
+              ]).map(opt => {
+                const selected = colorScheme === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => setColorScheme(opt.id)}
+                    className="relative rounded-2xl border text-left overflow-hidden md-ripple"
+                    style={{
+                      background: 'var(--md-surface-container-low)',
+                      borderColor: selected ? 'var(--md-primary)' : 'var(--md-outline-variant)',
+                      borderWidth: selected ? 2 : 1,
+                      padding: '0.75rem 0.875rem',
+                    }}
+                    aria-pressed={selected}
+                    aria-label={`${opt.label} color`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className="w-6 h-6 rounded-full shrink-0"
+                        style={{ background: opt.primary, boxShadow: 'var(--md-elevation-1)' }}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="w-6 h-6 rounded-full shrink-0"
+                        style={{ background: opt.primaryDark, border: '2px solid var(--md-surface-container-highest)' }}
+                        aria-hidden="true"
+                      />
+                      {selected && (
+                        <Check className="w-4 h-4 ml-auto shrink-0" strokeWidth={3} style={{ color: 'var(--md-primary)' }} />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mb-1.5" aria-hidden="true">
+                      <span className="flex-1 h-4 rounded-l-full" style={{ background: opt.container }} />
+                      <span className="flex-1 h-4" style={{ background: opt.primary }} />
+                      <span className="flex-1 h-4 rounded-r-full" style={{ background: opt.primaryDark }} />
+                    </div>
+                    <span className="md-label-large block truncate">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="md-body-small mt-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Applied instantly in light and dark mode.
+            </p>
           </section>
 
           {/* High contrast switch */}
