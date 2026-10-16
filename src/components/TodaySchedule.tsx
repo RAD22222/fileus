@@ -11,9 +11,11 @@ import {
   Trash2,
   Share2,
   Sparkles,
+  MoreVertical,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAppData } from '../context/AppDataContext';
+import { DateNavigator } from './DateNavigator';
 import { RoutineTask, TaskCategory, TimeOfDay } from '../types';
 
 interface TodayScheduleProps {
@@ -57,6 +59,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
 
   const [timeFilter, setTimeFilter] = useState<'all' | TimeOfDay>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | TaskCategory>('all');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const [y, m, d] = selectedDate.split('-').map(Number);
   const targetDateObj = new Date(y, m - 1, d);
@@ -109,22 +112,30 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   };
 
   const percent = todayStats.completionPercentage;
+  const closeMenu = () => setOpenMenuId(null);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Date pager — phones only (tablet+/desktop: inside the top app bar) */}
+      <div className="flex justify-center pt-1 sm:hidden">
+        <div className="w-full max-w-xs">
+          <DateNavigator fullWidth />
+        </div>
+      </div>
+
       {/* Today's score — MD3 elevated card */}
-      <section className="md-card md-card--elevated space-y-3">
-        <div className="flex items-center justify-between gap-2">
+      <section className="md-card md-card--elevated space-y-4">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="md-label-medium uppercase tracking-wider" style={{ color: 'var(--md-on-surface-variant)' }}>
-              {targetDateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            <div className="md-label-medium uppercase tracking-wider truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
+              {targetDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
             </div>
-            <div className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+            <div className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
               {todayStats.completedCount} of {todayStats.totalTasks} done
             </div>
           </div>
           <div
-            className="md-chip md-chip--assist"
+            className="md-chip md-chip--assist shrink-0"
             title={`${todayStats.currentStreak}-day streak`}
           >
             <Flame className="w-4 h-4" strokeWidth={2.5} style={{ color: 'var(--md-primary)' }} />
@@ -132,41 +143,40 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           </div>
         </div>
 
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="md-headline-small">
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <div className="md-display-small font-mono leading-none shrink-0" style={{ color: 'var(--md-primary)' }}>
+            {percent}%
+          </div>
+          <h2 className="md-headline-small text-right min-w-0">
             {percent === 100 && todayStats.totalTasks > 0
               ? 'Protocol complete'
               : percent >= 50
               ? 'Over halfway there'
               : `Today's protocol`}
           </h2>
-          <div className="text-right shrink-0">
-            <div className="md-display-small font-mono leading-none" style={{ color: 'var(--md-primary)' }}>
-              {percent}%
-            </div>
-            <div className="md-label-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
-              {todayStats.completedCount}/{todayStats.totalTasks}
-            </div>
-          </div>
         </div>
 
-        <div className="md-progress-linear" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+        <div className="md-progress-linear h-1.5" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
           <div className="md-progress-linear__bar" style={{ width: `${percent}%` }} />
         </div>
 
-        <div className="flex items-center justify-between gap-2">
-          <p className="md-body-small flex-1" style={{ color: 'var(--md-on-surface-variant)' }}>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <p
+            className="md-body-small flex-1 min-w-0 truncate"
+            style={{ color: 'var(--md-on-surface-variant)' }}
+            title="Consistency compounds. Small disciplines repeated daily build unstoppable momentum."
+          >
             Consistency compounds. Small disciplines repeated daily build unstoppable momentum.
           </p>
-          <button onClick={onOpenShareModal} className="md-button md-button--tonal md-ripple shrink-0">
+          <button onClick={onOpenShareModal} className="md-button md-button--text md-ripple shrink-0">
             <Share2 className="w-4 h-4" />
             Share
           </button>
         </div>
       </section>
 
-      {/* Filters — MD3 filter chips */}
-      <section className="md-card md-card--filled space-y-3">
+      {/* Filters — MD3 filter chips, flat on the surface */}
+      <section className="space-y-3" aria-label="Filters">
         <div className="md-chip-row scrollbar-none">
           {TIME_FILTERS.map(f => (
             <button
@@ -181,35 +191,26 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          <label className="md-text-field md-text-field--select flex-1">
-            <select
-              className="md-text-field__input"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as 'all' | TaskCategory)}
-            >
-              {CATEGORIES.map(c => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </select>
-            <span className="md-text-field__label">Domain</span>
-            <span className="md-text-field__arrow" aria-hidden="true">
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </span>
-          </label>
-          <button
-            onClick={() => onOpenAddTaskModal()}
-            className="md-button md-button--filled md-ripple shrink-0"
+        <label className="md-text-field md-text-field--select">
+          <select
+            className="md-text-field__input"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as 'all' | TaskCategory)}
           >
-            <Plus className="w-4 h-4" />
-            Add habit
-          </button>
-        </div>
+            {CATEGORIES.map(c => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+          <span className="md-text-field__label">Domain</span>
+          <span className="md-text-field__arrow" aria-hidden="true">
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </span>
+        </label>
       </section>
 
-      {/* Task list */}
+      {/* Task list — flat MD3 list with dividers */}
       {sortedDayTasks.length === 0 ? (
         <section className="md-card md-card--outlined text-center space-y-3 py-10">
           <div
@@ -230,70 +231,89 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           </button>
         </section>
       ) : (
-        <ul className="space-y-2">
-          {sortedDayTasks.map(task => {
+        <ul className="md-card md-card--outlined !p-0 overflow-hidden" aria-label="Today's habits">
+          {sortedDayTasks.map((task, index) => {
             const isCompleted = completedTaskIds.has(task.id);
             const parentRoutine = routines.find(r => r.id === task.routineId);
+            const menuOpen = openMenuId === `task-${task.id}`;
 
             return (
-              <li
-                key={task.id}
-                className="md-card md-card--filled flex items-center gap-1 pr-1"
-                style={isCompleted ? { opacity: 0.6 } : undefined}
-              >
-                <button
-                  onClick={() => handleToggle(task.id)}
-                  className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
-                  aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
-                  aria-pressed={isCompleted}
+              <li key={task.id}>
+                {index > 0 && <hr className="md-divider" />}
+                <div
+                  className={`md-task-row${isCompleted ? ' md-task-row--done' : ''}`}
+                  style={isCompleted ? { opacity: 0.65 } : undefined}
                 >
-                  <span className="md-checkbox__box">
-                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                  </span>
-                </button>
-
-                <div className="flex flex-col items-center justify-center w-12 shrink-0 font-mono text-center">
-                  <span className="md-label-large">{task.scheduledTime || '--:--'}</span>
-                  <span className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-                    {task.durationMinutes}m
-                  </span>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <span
-                    className="md-body-large block truncate"
-                    style={isCompleted ? { textDecoration: 'line-through', color: 'var(--md-on-surface-variant)' } : undefined}
+                  <button
+                    onClick={() => handleToggle(task.id)}
+                    className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
+                    aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
+                    aria-pressed={isCompleted}
                   >
-                    {task.title}
-                  </span>
-                  <div
-                    className="md-body-small truncate"
-                    style={{ color: 'var(--md-on-surface-variant)' }}
-                  >
-                    {parentRoutine ? `${parentRoutine.title} · ` : ''}
-                    <span className="capitalize">{task.category}</span>
-                    {' · '}
-                    <span className="uppercase font-mono md-label-small">{task.priority}</span>
+                    <span className="md-checkbox__box">
+                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                    </span>
+                  </button>
+
+                  <div className="flex flex-col items-center justify-center w-12 shrink-0 font-mono text-center">
+                    <span className="md-label-large">{task.scheduledTime || '--:--'}</span>
+                    <span className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+                      {task.durationMinutes}m
+                    </span>
                   </div>
-                </div>
 
-                <div className="flex items-center shrink-0">
-                  <button
-                    onClick={() => onOpenEditTaskModal(task)}
-                    className="md-icon-button md-ripple"
-                    title="Edit habit"
-                    aria-label="Edit habit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    className="md-icon-button md-ripple"
-                    title="Delete habit"
-                    aria-label="Delete habit"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex-1 min-w-0 pl-1">
+                    <span
+                      className="md-body-large block truncate"
+                      style={isCompleted ? { textDecoration: 'line-through', color: 'var(--md-on-surface-variant)' } : undefined}
+                    >
+                      {task.title}
+                    </span>
+                    <div
+                      className="md-body-medium truncate mt-0.5"
+                      style={{ color: 'var(--md-on-surface-variant)' }}
+                    >
+                      {parentRoutine ? `${parentRoutine.title} · ` : ''}
+                      <span className="capitalize">{task.category}</span>
+                      {' · '}
+                      <span className="uppercase font-mono md-label-small">{task.priority}</span>
+                    </div>
+                  </div>
+
+                  <div className="relative shrink-0 self-center">
+                    <button
+                      onClick={() => setOpenMenuId(menuOpen ? null : `task-${task.id}`)}
+                      className="md-icon-button md-ripple"
+                      title="More options"
+                      aria-label={`Options for ${task.title}`}
+                      aria-expanded={menuOpen}
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    {menuOpen && (
+                      <>
+                        <div className="md-menu-backdrop" onClick={closeMenu} />
+                        <div className="md-menu" role="menu">
+                          <button
+                            className="md-menu-item"
+                            role="menuitem"
+                            onClick={() => { closeMenu(); onOpenEditTaskModal(task); }}
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Edit habit
+                          </button>
+                          <button
+                            className="md-menu-item md-menu-item--danger"
+                            role="menuitem"
+                            onClick={() => { closeMenu(); deleteTask(task.id); }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete habit
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </li>
             );

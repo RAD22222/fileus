@@ -4,13 +4,11 @@ import {
   Bell,
   Sun,
   Moon,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
   Sliders,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { DateNavigator } from './DateNavigator';
 
 interface HeaderProps {
   scrolled?: boolean;
@@ -23,60 +21,23 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNotificationModal,
   onOpenSettingsModal,
 }) => {
-  const {
-    todayStats,
-    selectedDate,
-    setSelectedDate,
-  } = useAppData();
-
+  const { todayStats } = useAppData();
   const { isDark, toggleDarkQuick } = useTheme();
-
-  // Date navigation helpers
-  const handlePrevDay = () => {
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() - 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleNextDay = () => {
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleSetToday = () => {
-    const today = new Date().toISOString().split('T')[0];
-    setSelectedDate(today);
-  };
-
-  const isSelectedDateToday = selectedDate === new Date().toISOString().split('T')[0];
-
-  const formatDisplayDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <header
-      className={`md-top-app-bar flex-wrap${scrolled ? ' md-top-app-bar--scrolled' : ''}`}
+      className={`md-top-app-bar${scrolled ? ' md-top-app-bar--scrolled' : ''}`}
       role="banner"
     >
-      {/* App logo */}
+      {/* App logo + name — tablet/desktop only; phones get a clean 64dp title bar */}
       <div
-        className="w-9 h-9 shrink-0 flex items-center justify-center font-bold text-sm rounded-xl"
+        className="hidden sm:flex w-9 h-9 shrink-0 items-center justify-center font-bold text-sm rounded-xl"
         style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
         aria-hidden="true"
       >
         HP
       </div>
 
-      {/* Title */}
       <div className="hidden sm:block ml-2 mr-1 min-w-0">
         <div className="md-title-large leading-tight truncate">HabitPulse</div>
         <div className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
@@ -87,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex-1 hidden sm:block" />
 
-      {/* Streak — assist chip (phones: shown in the Today score card instead) */}
+      {/* Streak — assist chip (tablet/desktop; phones: shown in the Today score card) */}
       <div className="hidden md:flex">
         <div
           className="md-chip md-chip--assist"
@@ -102,37 +63,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Date navigation — MD3 segmented button
-          Phones: wraps to its own row so nothing overflows the viewport */}
-      <div className="order-last basis-full px-3 pt-1 pb-2 sm:order-none sm:basis-auto sm:p-0">
-        <div className="md-segmented mx-auto" role="group" aria-label="Select date">
-          <button
-            onClick={handlePrevDay}
-            className="md-segmented__item md-ripple px-2 shrink-0"
-            title="Previous Day"
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleSetToday}
-            className="md-segmented__item md-ripple flex-1 min-w-0 px-2 sm:min-w-[5rem]"
-            title={isSelectedDateToday ? 'Today' : `Selected: ${formatDisplayDate(selectedDate)}`}
-          >
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span className="md-label-large truncate">
-              {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
-            </span>
-          </button>
-          <button
-            onClick={handleNextDay}
-            className="md-segmented__item md-ripple px-2 shrink-0"
-            title="Next Day"
-            aria-label="Next day"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+      {/* Date navigation — tablet/desktop only (phones: inside the Today screen) */}
+      <div className="hidden sm:block sm:mr-1">
+        <DateNavigator />
       </div>
 
       {/* Actions */}

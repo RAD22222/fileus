@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  BarChart3,
   Flame,
   Award,
   Calendar,
@@ -146,23 +145,15 @@ export const AnalyticsVisualizer: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <section className="md-card md-card--elevated flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
-          >
-            <BarChart3 className="w-5 h-5" />
-          </span>
-          <div>
-            <h2 className="md-title-large">Analytics</h2>
-            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Consistency, adherence, and streaks
-            </p>
-          </div>
+      {/* Header — flat on the surface */}
+      <section className="flex items-center justify-between gap-3 pt-1">
+        <div className="min-w-0">
+          <h2 className="md-headline-small truncate">Analytics</h2>
+          <p className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+            Consistency, adherence, and streaks
+          </p>
         </div>
-        <span className="md-chip md-chip--assist">
+        <span className="md-chip md-chip--assist shrink-0">
           <span className="font-mono">Adherence {consistencyScore}%</span>
         </span>
       </section>

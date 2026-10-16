@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Layers,
   Plus,
   Pencil,
   Trash2,
@@ -11,6 +10,7 @@ import {
   Zap,
   Moon,
   ArrowRight,
+  MoreVertical,
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { Routine, RoutineTask, RoutineTemplate, TimeOfDay } from '../types';
@@ -41,6 +41,7 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
     new Set(routines.map(r => r.id))
   );
   const [importingTemplateId, setImportingTemplateId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedRoutineIds(prev => {
@@ -59,6 +60,8 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
       setImportingTemplateId(null);
     }
   };
+
+  const closeMenu = () => setOpenMenuId(null);
 
   const getTimeIcon = (timeOfDay: TimeOfDay) => {
     switch (timeOfDay) {
@@ -83,25 +86,17 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <section className="md-card md-card--elevated flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
-          >
-            <Layers className="w-5 h-5" />
-          </span>
-          <div>
-            <h2 className="md-title-large">Routine stacks</h2>
-            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Habit chains that execute on autopilot
-            </p>
-          </div>
+      {/* Header — flat on the surface */}
+      <section className="flex items-center justify-between gap-3 pt-1">
+        <div className="min-w-0">
+          <h2 className="md-headline-small truncate">Routine stacks</h2>
+          <p className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+            Habit chains that execute on autopilot
+          </p>
         </div>
         <button
           onClick={onOpenCreateRoutineModal}
-          className="md-button md-button--filled md-ripple w-full sm:w-auto"
+          className="md-button md-button--tonal md-ripple shrink-0"
         >
           <Plus className="w-4 h-4" />
           New routine
@@ -115,14 +110,15 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
             .filter(t => t.routineId === routine.id && !t.isArchived)
             .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''));
           const isExpanded = expandedRoutineIds.has(routine.id);
+          const menuOpen = openMenuId === `routine-${routine.id}`;
 
           return (
             <article key={routine.id} className="md-card md-card--outlined p-0 overflow-hidden">
               {/* Card header */}
-              <div className="flex items-center gap-3 p-3">
+              <div className="flex items-center gap-1 p-2 pl-3">
                 <button
                   onClick={() => toggleExpand(routine.id)}
-                  className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl"
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left rounded-xl py-1.5"
                   aria-expanded={isExpanded}
                 >
                   <span
@@ -132,57 +128,74 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
                     {getTimeIcon(routine.timeOfDay)}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="md-label-medium uppercase tracking-wider block" style={{ color: 'var(--md-on-surface-variant)' }}>
-                      {routine.timeOfDay} · {routineTasks.length} habit{routineTasks.length !== 1 ? 's' : ''} · {getDayNames(routine.targetDays || [0, 1, 2, 3, 4, 5, 6])}
-                    </span>
                     <span className="md-title-medium block truncate">{routine.title}</span>
-                    {routine.description && (
-                      <span className="md-body-small block truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
+                    <span className="md-label-medium block truncate mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+                      {routineTasks.length} habit{routineTasks.length !== 1 ? 's' : ''} · {getDayNames(routine.targetDays || [0, 1, 2, 3, 4, 5, 6])}
+                    </span>
+                    {routine.description && isExpanded && (
+                      <span className="md-body-small block truncate mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
                         {routine.description}
                       </span>
                     )}
                   </span>
                 </button>
 
-                <div className="flex items-center shrink-0">
+                <button
+                  onClick={() => toggleExpand(routine.id)}
+                  className="md-icon-button md-ripple shrink-0"
+                  aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                >
+                  {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
+
+                <div className="relative shrink-0">
                   <button
-                    onClick={() => onOpenAddTaskModal(routine.id)}
+                    onClick={() => setOpenMenuId(menuOpen ? null : `routine-${routine.id}`)}
                     className="md-icon-button md-ripple"
-                    title="Add step"
-                    aria-label="Add step"
+                    title="More options"
+                    aria-label={`Options for ${routine.title}`}
+                    aria-expanded={menuOpen}
                   >
-                    <Plus className="w-5 h-5" />
+                    <MoreVertical className="w-5 h-5" />
                   </button>
-                  <button
-                    onClick={() => onOpenEditRoutineModal(routine)}
-                    className="md-icon-button md-ripple"
-                    title="Edit routine"
-                    aria-label="Edit routine"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => deleteRoutine(routine.id)}
-                    className="md-icon-button md-ripple"
-                    title="Delete routine"
-                    aria-label="Delete routine"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => toggleExpand(routine.id)}
-                    className="md-icon-button md-ripple"
-                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                  >
-                    {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                  </button>
+                  {menuOpen && (
+                    <>
+                      <div className="md-menu-backdrop" onClick={closeMenu} />
+                      <div className="md-menu" role="menu">
+                        <button
+                          className="md-menu-item"
+                          role="menuitem"
+                          onClick={() => { closeMenu(); onOpenAddTaskModal(routine.id); }}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add step
+                        </button>
+                        <button
+                          className="md-menu-item"
+                          role="menuitem"
+                          onClick={() => { closeMenu(); onOpenEditRoutineModal(routine); }}
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Edit routine
+                        </button>
+                        <button
+                          className="md-menu-item md-menu-item--danger"
+                          role="menuitem"
+                          onClick={() => { closeMenu(); deleteRoutine(routine.id); }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete routine
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Steps */}
               {isExpanded && (
                 <div
-                  className="px-2 pb-2 space-y-1"
+                  className="px-2 pb-2"
                   style={{ background: 'var(--md-surface-container)' }}
                 >
                   {routineTasks.length === 0 ? (
@@ -199,40 +212,62 @@ export const RoutinesManager: React.FC<RoutinesManagerProps> = ({
                       </button>
                     </div>
                   ) : (
-                    routineTasks.map((task, idx) => (
-                      <div key={task.id} className="md-list-item md-ripple rounded-xl">
-                        <span
-                          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 md-label-large font-mono"
-                          style={{ background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)' }}
-                        >
-                          {idx + 1}
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="md-body-large block truncate">{task.title}</span>
-                          <span className="md-body-small block font-mono" style={{ color: 'var(--md-on-surface-variant)' }}>
-                            {task.scheduledTime || 'No time'} · {task.durationMinutes}m · <span className="capitalize">{task.category}</span>
-                          </span>
-                        </span>
-                        <span className="flex items-center shrink-0">
-                          <button
-                            onClick={() => onOpenEditTaskModal(task)}
-                            className="md-icon-button md-ripple"
-                            title="Edit step"
-                            aria-label="Edit step"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteTask(task.id)}
-                            className="md-icon-button md-ripple"
-                            title="Delete step"
-                            aria-label="Delete step"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </span>
-                      </div>
-                    ))
+                    routineTasks.map((task, idx) => {
+                      const stepMenuOpen = openMenuId === `step-${task.id}`;
+                      return (
+                        <div key={task.id}>
+                          {idx > 0 && <hr className="md-divider" style={{ margin: '0 0.75rem' }} />}
+                          <div className="md-task-row">
+                            <span
+                              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 md-label-large font-mono"
+                              style={{ background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)' }}
+                            >
+                              {idx + 1}
+                            </span>
+                            <span className="flex-1 min-w-0 pl-1">
+                              <span className="md-body-large block truncate">{task.title}</span>
+                              <span className="md-body-small block font-mono mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+                                {task.scheduledTime || 'No time'} · {task.durationMinutes}m · <span className="capitalize">{task.category}</span>
+                              </span>
+                            </span>
+                            <span className="relative shrink-0 self-center">
+                              <button
+                                onClick={() => setOpenMenuId(stepMenuOpen ? null : `step-${task.id}`)}
+                                className="md-icon-button md-ripple"
+                                title="More options"
+                                aria-label={`Options for ${task.title}`}
+                                aria-expanded={stepMenuOpen}
+                              >
+                                <MoreVertical className="w-5 h-5" />
+                              </button>
+                              {stepMenuOpen && (
+                                <>
+                                  <div className="md-menu-backdrop" onClick={closeMenu} />
+                                  <div className="md-menu" role="menu">
+                                    <button
+                                      className="md-menu-item"
+                                      role="menuitem"
+                                      onClick={() => { closeMenu(); onOpenEditTaskModal(task); }}
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                      Edit step
+                                    </button>
+                                    <button
+                                      className="md-menu-item md-menu-item--danger"
+                                      role="menuitem"
+                                      onClick={() => { closeMenu(); deleteTask(task.id); }}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete step
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               )}

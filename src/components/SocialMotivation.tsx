@@ -153,25 +153,17 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     <div className="space-y-4">
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Header */}
-      <section className="md-card md-card--elevated flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
-          >
-            <Users className="w-5 h-5" />
-          </span>
-          <div>
-            <h2 className="md-title-large">Social motivation</h2>
-            <p className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
-              Share wins, cheer friends, stay accountable
-            </p>
-          </div>
+      {/* Header — flat on the surface */}
+      <section className="flex items-center justify-between gap-3 pt-1">
+        <div className="min-w-0">
+          <h2 className="md-headline-small truncate">Social motivation</h2>
+          <p className="md-body-medium mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
+            Share wins, cheer friends, stay accountable
+          </p>
         </div>
         <button
           onClick={onOpenNewPostModal}
-          className="md-button md-button--filled md-ripple w-full sm:w-auto"
+          className="md-button md-button--tonal md-ripple shrink-0"
         >
           <Plus className="w-4 h-4" />
           Post a win
