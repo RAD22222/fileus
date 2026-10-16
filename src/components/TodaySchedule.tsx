@@ -550,14 +550,17 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   return (
     <div className="space-y-4">
       {/* Date pager — phones only (tablet+/desktop: inside the top app bar) */}
-      <div className="flex justify-center pt-1 sm:hidden">
+      <div className="md-item-enter flex justify-center pt-1 sm:hidden">
         <div className="w-full max-w-xs">
           <DateNavigator fullWidth />
         </div>
       </div>
 
       {/* Today's hero — MD3 elevated card with progress ring */}
-      <section className="md-card md-card--elevated space-y-4" style={{ borderRadius: '1.5rem' }}>
+      <section
+        className="md-card md-card--elevated md-item-enter space-y-4"
+        style={{ borderRadius: '1.5rem', animationDelay: '60ms' }}
+      >
         <div className="flex items-center gap-4">
           <ProgressRing percent={percent} />
           <div className="flex-1 min-w-0">
@@ -616,7 +619,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
       </section>
 
       {/* Filters — MD3 filter chips, flat on the surface */}
-      <section className="space-y-3" aria-label="Filters">
+      <section className="md-item-enter space-y-3" style={{ animationDelay: '140ms' }} aria-label="Filters">
         <div className="md-chip-row scrollbar-none">
           {TIME_FILTERS.map(f => (
             <button

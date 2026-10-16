@@ -1,74 +1,95 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
+import { hapticTick } from '../lib/pwa';
 
 interface DateNavigatorProps {
-  /** Stretch the segmented control to the full row width (phone layout) */
+  /** Stretch the control to the full row width (phone layout) */
   fullWidth?: boolean;
 }
 
-/** MD3 segmented date pager — shared by the top app bar (tablet+) and the Today screen (phone). */
+const partsOf = (dateStr: string) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return {
+    weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
+    label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+  };
+};
+
+const todayStr = () => new Date().toISOString().split('T')[0];
+
+/**
+ * Expressive date pager:
+ * tonal circular arrows + a large animated date pill that flips in the
+ * direction you travel, plus a "Today" jump chip when viewing another day.
+ */
 export const DateNavigator: React.FC<DateNavigatorProps> = ({ fullWidth = false }) => {
   const { selectedDate, setSelectedDate } = useAppData();
+  // Direction the content travels on a date change: 'next' → slides in
+  // from the right, 'prev' → from the left, null → first paint.
+  const [travel, setTravel] = useState<'next' | 'prev' | null>(null);
 
-  const handlePrevDay = () => {
+  const shift = (delta: 1 | -1) => {
+    hapticTick();
+    setTravel(delta > 0 ? 'next' : 'prev');
     const [y, m, d] = selectedDate.split('-').map(Number);
     const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() - 1);
+    date.setDate(date.getDate() + delta);
     setSelectedDate(date.toISOString().split('T')[0]);
   };
 
-  const handleNextDay = () => {
-    const [y, m, d] = selectedDate.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() + 1);
-    setSelectedDate(date.toISOString().split('T')[0]);
-  };
-
-  const handleSetToday = () => {
-    const today = new Date().toISOString().split('T')[0];
+  const goToday = () => {
+    const today = todayStr();
+    hapticTick();
+    setTravel(selectedDate > today ? 'prev' : 'next');
     setSelectedDate(today);
   };
 
-  const isSelectedDateToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === todayStr();
+  const cur = partsOf(selectedDate);
 
-  const formatDisplayDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  };
+  const flipClass = travel === 'prev' ? 'md-date-in--prev' : travel === 'next' ? 'md-date-in--next' : undefined;
 
   return (
     <div
-      className={`md-segmented${fullWidth ? ' w-full' : ''}`}
+      className={`flex items-center gap-2${fullWidth ? ' w-full' : ''}`}
       role="group"
       aria-label="Select date"
     >
       <button
-        onClick={handlePrevDay}
-        className="md-segmented__item md-ripple px-2 shrink-0"
-        title="Previous Day"
+        onClick={() => shift(-1)}
+        className="md-date-arrow md-ripple"
+        title="Previous day"
         aria-label="Previous day"
       >
-        <ChevronLeft className="w-4 h-4" />
+        <ChevronLeft className="w-5 h-5" strokeWidth={2.25} />
       </button>
+
+      <div className={`md-date-pill flex-1 min-w-0${fullWidth ? '' : ' min-w-[9rem]'}`}>
+        <div
+          key={selectedDate}
+          className={`md-date-flip ${flipClass ?? ''}`}
+          aria-live="polite"
+        >
+          <span className="md-date-pill__weekday">{cur.weekday}</span>
+          <span className="md-date-pill__label">{cur.label}</span>
+        </div>
+
+        {!isToday && (
+          <button onClick={goToday} className="md-date-today-chip" title="Jump to today">
+            Today
+          </button>
+        )}
+      </div>
+
       <button
-        onClick={handleSetToday}
-        className={`md-segmented__item md-ripple px-2${fullWidth ? ' flex-1 min-w-0' : ' min-w-[5rem]'}`}
-        title={isSelectedDateToday ? 'Today' : `Selected: ${formatDisplayDate(selectedDate)}`}
-      >
-        <Calendar className="w-4 h-4 shrink-0" />
-        <span className="md-label-large truncate">
-          {isSelectedDateToday ? 'Today' : formatDisplayDate(selectedDate)}
-        </span>
-      </button>
-      <button
-        onClick={handleNextDay}
-        className="md-segmented__item md-ripple px-2 shrink-0"
-        title="Next Day"
+        onClick={() => shift(1)}
+        className="md-date-arrow md-ripple"
+        title="Next day"
         aria-label="Next day"
       >
-        <ChevronRight className="w-4 h-4" />
+        <ChevronRight className="w-5 h-5" strokeWidth={2.25} />
       </button>
     </div>
   );

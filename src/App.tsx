@@ -146,11 +146,10 @@ const AppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Floating action button — quick add habit (extended for clarity) */}
-      {/* Dock — plain flow layout at the shell bottom. The app shell never
-          scrolls the document (only <main> scrolls internally), so Android
-          Chrome can never misposition the dock during UI animations. */}
-      <div className="relative z-30 pointer-events-none md:hidden">
+      {/* Dock — floating frosted-glass bar, plain flow layout at the shell
+          bottom. The app shell never scrolls the document (only <main> scrolls
+          internally), so Android Chrome can never misposition it. */}
+      <div className="md-dock-wrap relative z-30 pointer-events-none md:hidden">
         <button
           onClick={() => handleOpenAddTask()}
           className="md-fab md-fab--floating md-fab--extended md-ripple pointer-events-auto"
@@ -159,7 +158,7 @@ const AppContent: React.FC = () => {
           <Plus className="w-5 h-5" strokeWidth={2.5} />
           Add habit
         </button>
-        <nav className="md-nav-bar md-nav-bar--sticky pointer-events-auto" aria-label="Primary">
+        <nav className="md-nav-bar pointer-events-auto" aria-label="Primary">
           {NAV_ITEMS.map(item => renderNavItem(item))}
         </nav>
       </div>
