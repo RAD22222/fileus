@@ -44,6 +44,13 @@ const AppContent: React.FC = () => {
     setActiveTab(id);
   };
 
+  // Every tab is a fresh screen — start at the top. This also avoids the
+  // Chromium quirk where a fixed bottom bar is mispositioned while the
+  // browser re-clamps scroll on a content swap.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [activeTab]);
+
   // Modals state
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);

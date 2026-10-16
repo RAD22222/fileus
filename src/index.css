@@ -934,6 +934,9 @@
   height: 5rem;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--md-surface-container);
+  /* Own compositor layer: keeps the bar glued to the visual viewport on
+     Android while the browser UI (URL bar) shows/hides during scrolls. */
+  will-change: transform;
 }
 .md-nav-item {
   flex: 1;
@@ -1018,6 +1021,7 @@
   right: 1rem;
   bottom: calc(5rem + 1rem + env(safe-area-inset-bottom));
   z-index: 35;
+  will-change: transform;
 }
 @media (min-width: 768px) {
   .md-fab--floating { display: none; }
