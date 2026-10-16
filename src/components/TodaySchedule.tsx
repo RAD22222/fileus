@@ -42,6 +42,46 @@ const CATEGORIES: { id: 'all' | TaskCategory; label: string }[] = [
   { id: 'other', label: 'Other' },
 ];
 
+const GROUP_ORDER: TimeOfDay[] = ['morning', 'afternoon', 'evening', 'anytime'];
+const GROUP_META: Record<TimeOfDay, { label: string; icon: React.ReactNode }> = {
+  morning: { label: 'Morning', icon: <Sun className="w-4 h-4" /> },
+  afternoon: { label: 'Afternoon', icon: <Zap className="w-4 h-4" /> },
+  evening: { label: 'Evening', icon: <Moon className="w-4 h-4" /> },
+  anytime: { label: 'Anytime', icon: <Compass className="w-4 h-4" /> },
+};
+
+/** Circular progress ring — M3 expressive hero meter */
+const ProgressRing: React.FC<{ percent: number }> = ({ percent }) => {
+  const r = 32;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.min(100, Math.max(0, percent)) / 100);
+  return (
+    <div
+      className="md-ring w-[4.5rem] h-[4.5rem]"
+      role="progressbar"
+      aria-valuenow={percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <svg viewBox="0 0 72 72" className="w-full h-full">
+        <circle className="md-ring__track" cx="36" cy="36" r={r} />
+        <circle
+          className="md-ring__bar"
+          cx="36"
+          cy="36"
+          r={r}
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="md-ring__label">
+        <span className="md-title-large font-mono">{percent}%</span>
+      </span>
+    </div>
+  );
+};
+
 export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   onOpenAddTaskModal,
   onOpenEditTaskModal,
@@ -89,6 +129,16 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
     return a.scheduledTime.localeCompare(b.scheduledTime);
   });
 
+  const groupKeyOf = (task: RoutineTask): TimeOfDay =>
+    routines.find(r => r.id === task.routineId)?.timeOfDay || 'anytime';
+
+  // Grouped sections (only when no time filter is active)
+  const groupedTasks = timeFilter === 'all'
+    ? GROUP_ORDER
+        .map(g => ({ group: g, items: sortedDayTasks.filter(t => groupKeyOf(t) === g) }))
+        .filter(g => g.items.length > 0)
+    : null;
+
   const completedTaskIds = new Set(
     completions.filter(c => c.date === selectedDate).map(c => c.taskId)
   );
@@ -114,6 +164,95 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   const percent = todayStats.completionPercentage;
   const closeMenu = () => setOpenMenuId(null);
 
+  const renderTaskRow = (task: RoutineTask, showDivider: boolean) => {
+    const isCompleted = completedTaskIds.has(task.id);
+    const parentRoutine = routines.find(r => r.id === task.routineId);
+    const menuOpen = openMenuId === `task-${task.id}`;
+
+    return (
+      <li key={task.id}>
+        {showDivider && <hr className="md-divider" />}
+        <div
+          className={`md-task-row${isCompleted ? ' md-task-row--done' : ''}`}
+          style={isCompleted ? { opacity: 0.65 } : undefined}
+        >
+          <button
+            onClick={() => handleToggle(task.id)}
+            className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
+            aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
+            aria-pressed={isCompleted}
+          >
+            <span className="md-checkbox__box">
+              <Check className="w-3.5 h-3.5" strokeWidth={3} />
+            </span>
+          </button>
+
+          <button
+            onClick={() => onOpenEditTaskModal(task)}
+            className="flex flex-col md-ripple rounded-lg text-left flex-1 min-w-0 pl-1 pr-2 py-1.5"
+            title="Tap to edit this habit"
+            aria-label={`Edit ${task.title}`}
+          >
+            <span
+              className="md-body-large block truncate w-full"
+              style={isCompleted ? { textDecoration: 'line-through', color: 'var(--md-on-surface-variant)' } : undefined}
+            >
+              {task.title}
+            </span>
+            <span
+              className="md-body-small block truncate w-full mt-0.5 text-left"
+              style={{ color: 'var(--md-on-surface-variant)' }}
+            >
+              <span className="font-mono">{task.scheduledTime || '--:--'}</span>
+              {' · '}
+              {task.durationMinutes}m
+              {parentRoutine ? ` · ${parentRoutine.title}` : ''}
+              {' · '}
+              <span className="capitalize">{task.category}</span>
+              {' · '}
+              <span className="capitalize">{task.priority}</span>
+            </span>
+          </button>
+
+          <div className="relative shrink-0 self-center">
+            <button
+              onClick={() => setOpenMenuId(menuOpen ? null : `task-${task.id}`)}
+              className="md-icon-button md-ripple"
+              title="More options"
+              aria-label={`Options for ${task.title}`}
+              aria-expanded={menuOpen}
+            >
+              <MoreVertical className="w-[1.125rem] h-[1.125rem]" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="md-menu-backdrop" onClick={closeMenu} />
+                <div className="md-menu" role="menu">
+                  <button
+                    className="md-menu-item"
+                    role="menuitem"
+                    onClick={() => { closeMenu(); onOpenEditTaskModal(task); }}
+                  >
+                    <Pencil className="w-4 h-4" />
+                    Edit habit
+                  </button>
+                  <button
+                    className="md-menu-item md-menu-item--danger"
+                    role="menuitem"
+                    onClick={() => { closeMenu(); deleteTask(task.id); }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete habit
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Date pager — phones only (tablet+/desktop: inside the top app bar) */}
@@ -123,51 +262,40 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
         </div>
       </div>
 
-      {/* Today's score — MD3 elevated card */}
-      <section className="md-card md-card--elevated space-y-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+      {/* Today's hero — MD3 elevated card with progress ring */}
+      <section className="md-card md-card--elevated space-y-4" style={{ borderRadius: '1.5rem' }}>
+        <div className="flex items-center gap-4">
+          <ProgressRing percent={percent} />
+          <div className="flex-1 min-w-0">
             <div className="md-label-medium truncate" style={{ color: 'var(--md-on-surface-variant)' }}>
-              {targetDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+              {targetDateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
-            <div className="md-label-large mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
-              {todayStats.completedCount} of {todayStats.totalTasks} done
+            <h2 className="md-headline-small mt-0.5 truncate">
+              {percent === 100 && todayStats.totalTasks > 0 ? 'All habits done' : "Today's schedule"}
+            </h2>
+            <div
+              className="flex items-center gap-3 mt-2 md-body-small flex-wrap"
+              style={{ color: 'var(--md-on-surface-variant)' }}
+            >
+              <span>{todayStats.completedCount} of {todayStats.totalTasks} done</span>
             </div>
           </div>
-          <div
-            className="md-chip md-chip--assist shrink-0"
-            title={`${todayStats.currentStreak}-day streak`}
-          >
-            <Flame className="w-4 h-4" strokeWidth={2.5} style={{ color: 'var(--md-primary)' }} />
-            <span>{todayStats.currentStreak}-day streak</span>
-          </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 pt-1">
-          <div className="md-display-small font-mono leading-none shrink-0" style={{ color: 'var(--md-primary)' }}>
-            {percent}%
-          </div>
-          <h2 className="md-title-large text-right min-w-0">
-            {percent === 100 && todayStats.totalTasks > 0
-              ? 'All habits done'
-              : percent >= 50
-              ? 'Halfway there'
-              : `Today's schedule`}
-          </h2>
-        </div>
-
-        <div className="md-progress-linear h-1.5" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-          <div className="md-progress-linear__bar" style={{ width: `${percent}%` }} />
-        </div>
-
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <p
-            className="md-body-small flex-1 min-w-0 truncate"
-            style={{ color: 'var(--md-on-surface-variant)' }}
-            title="Consistency compounds. Small steps repeated daily build lasting momentum."
-          >
-            Consistency compounds. Small steps repeated daily build lasting momentum.
-          </p>
+        <div
+          className="flex items-center justify-between gap-2 px-3.5 py-2.5"
+          style={{
+            background: 'var(--md-surface-container)',
+            borderRadius: '1rem',
+            color: 'var(--md-on-surface-variant)',
+          }}
+        >
+          <span className="flex items-center gap-1.5 md-label-large min-w-0">
+            <Flame className="w-4 h-4 shrink-0" style={{ color: 'var(--md-primary)' }} />
+            <span className="truncate">
+              {todayStats.currentStreak}-day streak{percent >= 50 && percent < 100 ? ' — keep it going' : ''}
+            </span>
+          </span>
           <button onClick={onOpenShareModal} className="md-button md-button--text md-ripple shrink-0">
             <Share2 className="w-4 h-4" />
             Share
@@ -231,101 +359,37 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           </button>
         </section>
       ) : (
-        <ul className="md-card md-card--outlined !p-0 overflow-hidden" aria-label="Today's habits">
-          {sortedDayTasks.map((task, index) => {
-            const isCompleted = completedTaskIds.has(task.id);
-            const parentRoutine = routines.find(r => r.id === task.routineId);
-            const menuOpen = openMenuId === `task-${task.id}`;
-
-            return (
-              <li key={task.id}>
-                {index > 0 && <hr className="md-divider" />}
-                <div
-                  className={`md-task-row${isCompleted ? ' md-task-row--done' : ''}`}
-                  style={isCompleted ? { opacity: 0.65 } : undefined}
-                >
-                  <button
-                    onClick={() => handleToggle(task.id)}
-                    className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
-                    aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
-                    aria-pressed={isCompleted}
+        <>
+          {groupedTasks ? (
+            /* Grouped by time of day */
+            <div className="space-y-4" aria-label="Today's habits">
+              {groupedTasks.map(({ group, items }) => (
+                <section key={group} aria-label={GROUP_META[group].label}>
+                  <div
+                    className="flex items-center gap-1.5 md-label-large px-1 mb-1.5"
+                    style={{ color: 'var(--md-on-surface-variant)' }}
                   >
-                    <span className="md-checkbox__box">
-                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => onOpenEditTaskModal(task)}
-                    className="flex flex-col md-ripple rounded-lg text-left flex-1 min-w-0 pl-1 pr-2 py-1.5"
-                    title="Tap to edit this habit"
-                    aria-label={`Edit ${task.title}`}
-                  >
-                    <span
-                      className="md-body-large block truncate w-full"
-                      style={isCompleted ? { textDecoration: 'line-through', color: 'var(--md-on-surface-variant)' } : undefined}
-                    >
-                      {task.title}
-                    </span>
-                    <span
-                      className="md-body-small block truncate w-full mt-0.5 text-left"
-                      style={{ color: 'var(--md-on-surface-variant)' }}
-                    >
-                      <span className="font-mono">{task.scheduledTime || '--:--'}</span>
-                      {' · '}
-                      {task.durationMinutes}m
-                      {parentRoutine ? ` · ${parentRoutine.title}` : ''}
-                      {' · '}
-                      <span className="capitalize">{task.category}</span>
-                      {' · '}
-                      <span className="capitalize">{task.priority}</span>
-                    </span>
-                  </button>
-
-                  <div className="relative shrink-0 self-center">
-                    <button
-                      onClick={() => setOpenMenuId(menuOpen ? null : `task-${task.id}`)}
-                      className="md-icon-button md-ripple"
-                      title="More options"
-                      aria-label={`Options for ${task.title}`}
-                      aria-expanded={menuOpen}
-                    >
-                      <MoreVertical className="w-[1.125rem] h-[1.125rem]" />
-                    </button>
-                    {menuOpen && (
-                      <>
-                        <div className="md-menu-backdrop" onClick={closeMenu} />
-                        <div className="md-menu" role="menu">
-                          <button
-                            className="md-menu-item"
-                            role="menuitem"
-                            onClick={() => { closeMenu(); onOpenEditTaskModal(task); }}
-                          >
-                            <Pencil className="w-4 h-4" />
-                            Edit habit
-                          </button>
-                          <button
-                            className="md-menu-item md-menu-item--danger"
-                            role="menuitem"
-                            onClick={() => { closeMenu(); deleteTask(task.id); }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete habit
-                          </button>
-                        </div>
-                      </>
-                    )}
+                    {GROUP_META[group].icon}
+                    <span>{GROUP_META[group].label}</span>
                   </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                  <ul className="md-card md-card--outlined !p-0 overflow-hidden">
+                    {items.map((task, i) => renderTaskRow(task, i > 0))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          ) : (
+            /* Single filtered list */
+            <ul className="md-card md-card--outlined !p-0 overflow-hidden" aria-label="Today's habits">
+              {sortedDayTasks.map((task, i) => renderTaskRow(task, i > 0))}
+            </ul>
+          )}
+        </>
       )}
 
       {/* Daily victory */}
       {percent === 100 && todayStats.totalTasks > 0 && (
-        <section className="md-card md-card--elevated flex flex-col sm:flex-row items-center gap-3">
+        <section className="md-card md-card--elevated flex flex-col sm:flex-row items-center gap-3" style={{ borderRadius: '1.5rem' }}>
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
@@ -335,7 +399,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
           <div className="flex-1 text-center sm:text-left">
             <h3 className="md-title-medium">All done for today</h3>
             <p className="md-body-small mt-0.5" style={{ color: 'var(--md-on-surface-variant)' }}>
-              All {todayStats.totalTasks} scheduled habits done. Your {todayStats.currentStreak}-day streak is secured.
+              All {todayStats.totalTasks} scheduled habits completed. Your {todayStats.currentStreak}-day streak is secured.
             </p>
           </div>
           <button onClick={onOpenShareModal} className="md-button md-button--filled md-ripple w-full sm:w-auto">

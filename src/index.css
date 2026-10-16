@@ -314,7 +314,7 @@
    Cards
    ========================================================================== */
 .md-card {
-  border-radius: var(--md-shape-md);
+  border-radius: 1.25rem;
   background: var(--md-surface-container-low);
   color: var(--md-on-surface);
   padding: 1rem;
@@ -756,6 +756,30 @@
   transition: width 500ms var(--md-easing-emphasized);
 }
 
+/* Circular progress ring (M3 expressive) */
+.md-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.md-ring svg { transform: rotate(-90deg); }
+.md-ring circle {
+  fill: none;
+  stroke-width: 7;
+  transition: stroke-dashoffset 600ms var(--md-easing-emphasized);
+}
+.md-ring__track { stroke: var(--md-surface-container-highest); }
+.md-ring__bar { stroke: var(--md-primary); }
+.md-ring__label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
 /* ==========================================================================
    Top app bar
    ========================================================================== */
@@ -796,7 +820,6 @@
   height: 5rem;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--md-surface-container);
-  box-shadow: var(--md-elevation-2);
 }
 .md-nav-item {
   flex: 1;
@@ -823,8 +846,9 @@
   width: 4rem;
   height: 2rem;
   border-radius: var(--md-shape-full);
-  transition: background-color 250ms var(--md-easing-emphasized);
+  transition: background-color 250ms var(--md-easing-emphasized), transform 150ms var(--md-easing-emphasized);
 }
+.md-nav-item:active .md-nav-item__indicator { transform: scale(0.88); }
 .md-nav-item--active { color: var(--md-on-secondary-container); }
 .md-nav-item--active .md-nav-item__indicator {
   background: var(--md-secondary-container);
