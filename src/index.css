@@ -1194,8 +1194,7 @@ body {
   width: 2rem;
   height: 0.25rem;
   border-radius: var(--md-shape-full);
-  background: var(--md-on-surface-variant);
-  opacity: 0.4;
+  background: var(--md-on-surface-variant);  opacity: 0.4;
   margin: 0 auto 1rem;
 }
 
@@ -1244,4 +1243,13 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Sync restore dialog — MD3 surface pop */
+.md-sheet-pop {
+  animation: md-sheet-pop 320ms var(--md-easing-spring) both;
+}
+@keyframes md-sheet-pop {
+  from { opacity: 0; transform: translateY(26px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
 }

@@ -19,6 +19,8 @@ import { TaskModal } from './components/TaskModal';
 import { RoutineModal } from './components/RoutineModal';
 import { NewPostModal } from './components/NewPostModal';
 import { InAppNotificationToast } from './components/InAppNotificationToast';
+import { SyncRestoreSheet, requestSyncRestore } from './components/SyncRestoreSheet';
+import { codeFromLocation } from './lib/syncPack';
 import { Routine, RoutineTask } from './types';
 
 type AppTab = 'today' | 'routines' | 'analytics' | 'social';
@@ -49,6 +51,17 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [activeTab]);
+
+  // An incoming sync pack may be riding in the URL (shared link) — offer restore.
+  useEffect(() => {
+    const offer = () => {
+      const code = codeFromLocation();
+      if (code) requestSyncRestore(code);
+    };
+    offer();
+    window.addEventListener('hashchange', offer);
+    return () => window.removeEventListener('hashchange', offer);
+  }, []);
 
   // Modals state
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -209,6 +222,9 @@ const AppContent: React.FC = () => {
         isOpen={isNewPostModalOpen}
         onClose={() => setIsNewPostModalOpen(false)}
       />
+
+      {/* Incoming sync pack (restore link opened, or code pasted in Settings) */}
+      <SyncRestoreSheet />
     </div>
   );
 };

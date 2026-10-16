@@ -13,12 +13,16 @@ import {
   ChevronRight,
   Database,
   Smartphone,
+  Copy,
+  Share2,
 } from 'lucide-react';
 import { useTheme, COLOR_SCHEMES } from '../context/ThemeContext';
 import { useAppData } from '../context/AppDataContext';
 import { toneHex } from '../lib/dynamicColor';
-import { canPromptInstall, promptInstall, isStandalonePwa } from '../lib/pwa';
+import { canPromptInstall, promptInstall, isStandalonePwa, hapticTick } from '../lib/pwa';
 import { todayLocalStr } from '../lib/date';
+import { buildSyncCode, packLink, extractCodeFrom } from '../lib/syncPack';
+import { requestSyncRestore } from './SyncRestoreSheet';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -74,8 +78,78 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [exportSuccess, setExportSuccess] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
   const [importError, setImportError] = useState(false);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncCopied, setSyncCopied] = useState(false);
+  const [syncShared, setSyncShared] = useState(false);
+  const [syncPaste, setSyncPaste] = useState('');
+  const [syncError, setSyncError] = useState(false);
 
   if (!isOpen) return null;
+
+  const resetSyncFlags = () => {
+    setTimeout(() => {
+      setSyncCopied(false);
+      setSyncShared(false);
+      setSyncBusy(false);
+    }, 2000);
+  };
+
+  const handleCopySyncCode = async () => {
+    hapticTick();
+    setSyncBusy(true);
+    try {
+      const code = await buildSyncCode();
+      await navigator.clipboard.writeText(code);
+      setSyncCopied(true);
+      setSyncError(false);
+      resetSyncFlags();
+    } catch {
+      setSyncError(true);
+      setSyncBusy(false);
+    }
+  };
+
+  const handleShareSyncLink = async () => {
+    hapticTick();
+    setSyncBusy(true);
+    try {
+      const code = await buildSyncCode();
+      const link = packLink(code);
+      const shareData = {
+        title: 'HabitPulse — my habits',
+        text: 'Open to bring my HabitPulse routines to this device:',
+        url: link,
+      };
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setSyncShared(true);
+      } else {
+        await navigator.clipboard.writeText(link);
+        setSyncShared(true);
+      }
+      setSyncError(false);
+      resetSyncFlags();
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        setSyncBusy(false); // user cancelled the share sheet
+        return;
+      }
+      setSyncError(true);
+      setSyncBusy(false);
+    }
+  };
+
+  const handleImportSyncCode = () => {
+    hapticTick();
+    const code = extractCodeFrom(syncPaste);
+    if (!code) {
+      setSyncError(true);
+      return;
+    }
+    setSyncError(false);
+    // The restore sheet pops (validates, previews, replaces data on confirm).
+    requestSyncRestore(code);
+  };
 
   const handleExportBackup = () => {
     const jsonBlob = new Blob([exportBackup()], {
@@ -388,6 +462,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               ))}
             </div>
+          </section>
+
+          <hr className="md-divider" />
+
+          {/* Sync between devices — backend-free sync pack */}
+          <section>
+            <h3 className="md-title-small mb-1 flex items-center gap-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              <Smartphone className="w-4 h-4" />
+              Sync between devices
+            </h3>
+            <p className="md-body-small mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Move everything (habits, history, journal, settings) to another device — no account, nothing sent to a server. The code carries your data inside it. Anyone with the code can read it.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleShareSyncLink}
+                disabled={syncBusy}
+                className="md-button md-button--filled md-ripple"
+              >
+                {syncShared ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                {syncBusy ? 'Packing…' : syncShared ? 'Shared' : 'Share link'}
+              </button>
+              <button
+                onClick={handleCopySyncCode}
+                disabled={syncBusy}
+                className="md-button md-button--tonal md-ripple"
+              >
+                {syncCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {syncCopied ? 'Copied' : 'Copy code'}
+              </button>
+            </div>
+            <p className="md-body-small mt-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              On the other device: open <span className="font-mono select-text">fileus.vercel.app</span> with the link, or paste the code here:
+            </p>
+            <div className="flex gap-2 mt-1.5">
+              <input
+                value={syncPaste}
+                onChange={(e) => setSyncPaste(e.target.value)}
+                placeholder="HBPULSE…"
+                className="md-text-field__input flex-1"
+                style={{ fontFamily: 'var(--md-font-mono)', fontSize: '0.8rem' }}
+                aria-label="Paste sync code"
+              />
+              <button
+                onClick={handleImportSyncCode}
+                disabled={!syncPaste.trim() || syncBusy}
+                className="md-button md-button--tonal md-ripple shrink-0"
+              >
+                Restore
+              </button>
+            </div>
+            {syncError && (
+              <p className="md-body-small mt-1.5" style={{ color: 'var(--md-error)' }}>
+                That code couldn't be read — check that it wasn't cut off.
+              </p>
+            )}
           </section>
 
           <hr className="md-divider" />
