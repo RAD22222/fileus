@@ -44,11 +44,10 @@ const AppContent: React.FC = () => {
     setActiveTab(id);
   };
 
-  // Every tab is a fresh screen — start at the top. This also avoids the
-  // Chromium quirk where a fixed bottom bar is mispositioned while the
-  // browser re-clamps scroll on a content swap.
+  // Every tab is a fresh screen — reset the content-area scroll position.
+  // (The app is an app-shell: only <main> scrolls, the dock is static layout.)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    scrollerRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [activeTab]);
 
   // Modals state
@@ -64,14 +63,9 @@ const AppContent: React.FC = () => {
   const [routineToEdit, setRoutineToEdit] = useState<Routine | null>(null);
 
   const { todayStats } = useAppData();
-
-  // Elevate the top app bar on scroll (MD3 on-scroll behavior)
+  const scrollerRef = useRef<HTMLElement | null>(null);
+  // MD3 on-scroll elevation for the top app bar (content area scrolls internally)
   const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const handleOpenAddTask = (routineId?: string) => {
     setTaskToEdit(null);
@@ -115,7 +109,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col">
+    <div className="h-dvh flex flex-col overflow-hidden">
       <Header
         scrolled={scrolled}
         onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
@@ -124,7 +118,9 @@ const AppContent: React.FC = () => {
 
       <main
         key={activeTab}
-        className={`relative mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-24 md:pb-10 md:pl-28 md-view-enter-${viewDirection}`}
+        ref={(el) => { scrollerRef.current = el; }}
+        onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 4)}
+        className={`relative mx-auto w-full max-w-3xl flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-none px-4 pt-3 pb-24 md:pb-10 md:pl-28 md-view-enter-${viewDirection}`}
       >
         {activeTab === 'today' && (
           <TodaySchedule
@@ -151,9 +147,10 @@ const AppContent: React.FC = () => {
       </main>
 
       {/* Floating action button — quick add habit (extended for clarity) */}
-      {/* Dock — sticky bottom overlay. Sticky (not fixed) sidesteps Android
-          Chrome's fixed-bottom repositioning bugs during content swaps. */}
-      <div className="sticky bottom-0 z-30 pointer-events-none md:hidden">
+      {/* Dock — plain flow layout at the shell bottom. The app shell never
+          scrolls the document (only <main> scrolls internally), so Android
+          Chrome can never misposition the dock during UI animations. */}
+      <div className="relative z-30 pointer-events-none md:hidden">
         <button
           onClick={() => handleOpenAddTask()}
           className="md-fab md-fab--floating md-fab--extended md-ripple pointer-events-auto"

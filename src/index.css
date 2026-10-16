@@ -922,6 +922,16 @@
 /* ==========================================================================
    Navigation bar (mobile) + navigation rail (desktop)
    ========================================================================== */
+/* App shell: the document never scrolls — only <main> does. This keeps the
+   bottom dock (plain in-flow layout) immune to Android's dynamic browser-UI
+   repositioning bugs (URL-bar animation / viewport resize mid-swap). */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior-y: none;
+}
+
 .md-nav-bar {
   display: flex;
   align-items: stretch;
@@ -930,11 +940,9 @@
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--md-surface-container);
 }
-/* Sticky bottom dock: immune to Android's fixed-bottom viewport bugs
-   (works identically in browser, installed PWA, and Samsung Internet). */
+/* Dock is static in-flow layout inside the app shell. */
 .md-nav-bar--sticky {
-  position: sticky;
-  bottom: 0;
+  position: relative;
 }
 .md-nav-item {
   flex: 1;
