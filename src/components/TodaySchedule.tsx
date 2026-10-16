@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
   Plus,
@@ -12,13 +12,22 @@ import {
   Share2,
   Sparkles,
   MoreVertical,
+  Snowflake,
+  GripVertical,
+  Minus,
+  Play,
+  Pause,
+  BookHeart,
+  ChevronDown,
+  PartyPopper,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAppData } from '../context/AppDataContext';
 import { useTheme } from '../context/ThemeContext';
-import { COLOR_SCHEME_ACCENTS } from '../lib/themes';
+import { getAccents } from '../lib/themes';
+import { hapticTick, hapticUndo, hapticNudge, hapticCelebrate } from '../lib/pwa';
 import { DateNavigator } from './DateNavigator';
-import { RoutineTask, TaskCategory, TimeOfDay } from '../types';
+import { RoutineTask, TaskCategory, TimeOfDay, Mood } from '../types';
 
 interface TodayScheduleProps {
   onOpenAddTaskModal: (routineId?: string) => void;
@@ -51,6 +60,13 @@ const GROUP_META: Record<TimeOfDay, { label: string; icon: React.ReactNode }> = 
   evening: { label: 'Evening', icon: <Moon className="w-4 h-4" /> },
   anytime: { label: 'Anytime', icon: <Compass className="w-4 h-4" /> },
 };
+
+const MOODS: { id: Mood; emoji: string; label: string }[] = [
+  { id: 'great', emoji: '😄', label: 'Great day' },
+  { id: 'good', emoji: '🙂', label: 'Good day' },
+  { id: 'neutral', emoji: '😐', label: 'Average' },
+  { id: 'low', emoji: '😔', label: 'Rough day' },
+];
 
 /** Circular progress ring — M3 expressive hero meter */
 const ProgressRing: React.FC<{ percent: number }> = ({ percent }) => {
@@ -89,12 +105,80 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
   onOpenEditTaskModal,
   onOpenShareModal,
 }) => {
-  const { routines, tasks, completions, selectedDate, toggleTaskCompletion, deleteTask, todayStats } = useAppData();
-  const { colorScheme } = useTheme();
+  const {
+    routines,
+    tasks,
+    completions,
+    selectedDate,
+    toggleTaskCompletion,
+    setTaskProgress,
+    deleteTask,
+    reorderTasks,
+    todayStats,
+    streakFreezes,
+    freezeUsedDates,
+    useStreakFreeze,
+    newlyEarnedMilestone,
+    acknowledgeMilestone,
+    saveJournalEntry,
+    getJournalEntry,
+  } = useAppData();
+  const { colorScheme, customHue } = useTheme();
+  const accents = getAccents(colorScheme, customHue);
 
   const [timeFilter, setTimeFilter] = useState<'all' | TimeOfDay>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | TaskCategory>('all');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // Live timer for timer-type habits
+  const [runningTimer, setRunningTimer] = useState<{ taskId: string; startedAt: number } | null>(null);
+  const [timerTick, setTimerTick] = useState(0);
+  useEffect(() => {
+    if (!runningTimer) return;
+    const iv = setInterval(() => setTimerTick(t => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, [runningTimer]);
+
+  // Day journal local draft
+  const journalEntry = getJournalEntry(selectedDate);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journalDraft, setJournalDraft] = useState('');
+  const [journalMood, setJournalMood] = useState<Mood | undefined>(undefined);
+  const [journalDirty, setJournalDirty] = useState(false);
+  useEffect(() => {
+    setJournalDraft(journalEntry?.note || '');
+    setJournalMood(journalEntry?.mood);
+    setJournalDirty(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, journalEntry?.note, journalEntry?.mood]);
+
+  const debouncedSaveJournal = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveJournal = (note: string, mood?: Mood) => {
+    setJournalDraft(note);
+    setJournalMood(mood);
+    setJournalDirty(true);
+    if (debouncedSaveJournal.current) clearTimeout(debouncedSaveJournal.current);
+    debouncedSaveJournal.current = setTimeout(() => {
+      saveJournalEntry(selectedDate, note, mood);
+      setJournalDirty(false);
+      hapticNudge();
+    }, 700);
+  };
+
+  // Milestone celebration
+  useEffect(() => {
+    if (newlyEarnedMilestone != null) {
+      hapticCelebrate();
+      try {
+        confetti({
+          particleCount: 140,
+          spread: 75,
+          origin: { y: 0.5 },
+          colors: accents.confetti,
+        });
+      } catch {}
+    }
+  }, [newlyEarnedMilestone, colorScheme]);
 
   const [y, m, d] = selectedDate.split('-').map(Number);
   const targetDateObj = new Date(y, m - 1, d);
@@ -118,11 +202,18 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
     return true;
   });
 
-  const sortedDayTasks = [...dayTasks].sort((a, b) => {
-    if (!a.scheduledTime) return 1;
-    if (!b.scheduledTime) return -1;
-    return a.scheduledTime.localeCompare(b.scheduledTime);
-  });
+  const sortedDayTasks = useMemo(
+    () =>
+      [...dayTasks].sort((a, b) => {
+        const oa = a.order ?? 9999;
+        const ob = b.order ?? 9999;
+        if (oa !== ob) return oa - ob;
+        if (!a.scheduledTime) return 1;
+        if (!b.scheduledTime) return -1;
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      }),
+    [dayTasks]
+  );
 
   const groupKeyOf = (task: RoutineTask): TimeOfDay =>
     routines.find(r => r.id === task.routineId)?.timeOfDay || 'anytime';
@@ -134,21 +225,37 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
         .filter(g => g.items.length > 0)
     : null;
 
-  const completedTaskIds = new Set(
-    completions.filter(c => c.date === selectedDate).map(c => c.taskId)
+  const getCompletion = (taskId: string, date: string) =>
+    completions.find(c => c.taskId === taskId && c.date === date);
+  const isTaskDone = (task: RoutineTask): boolean => {
+    const c = getCompletion(task.id, selectedDate);
+    if (!c) return false;
+    if (task.habitType === 'count') return (c.value ?? task.targetCount ?? 1) >= (task.targetCount ?? 1);
+    if (task.habitType === 'timer') return (c.value ?? 0) >= Math.max(1, task.durationMinutes);
+    return true;
+  };
+  const completedTaskIds = useMemo(
+    () => new Set(sortedDayTasks.filter(isTaskDone).map(t => t.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sortedDayTasks, completions, selectedDate]
   );
 
-  const handleToggle = async (taskId: string) => {
-    const isCurrentlyDone = completedTaskIds.has(taskId);
-    await toggleTaskCompletion(taskId);
+  const handleToggle = async (task: RoutineTask) => {
+    const isCurrentlyDone = completedTaskIds.has(task.id);
+    await toggleTaskCompletion(task.id);
+    if (isCurrentlyDone) {
+      hapticUndo();
+      return;
+    }
+    hapticTick();
 
-    if (!isCurrentlyDone && todayStats.completedCount + 1 === todayStats.totalTasks) {
+    if (todayStats.completedCount + 1 === todayStats.totalTasks) {
       try {
         confetti({
           particleCount: 80,
           spread: 60,
           origin: { y: 0.6 },
-          colors: COLOR_SCHEME_ACCENTS[colorScheme].confetti,
+          colors: accents.confetti,
         });
       } catch (err) {
         console.warn('Confetti error:', err);
@@ -156,31 +263,187 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
     }
   };
 
-  const percent = todayStats.completionPercentage;
-  const closeMenu = () => setOpenMenuId(null);
+  // ---- Streak freeze eligibility: yesterday had scheduled habits but is incomplete & unfrozen ----
+  const yesterdayStr = useMemo(() => {
+    const dt = new Date();
+    dt.setDate(dt.getDate() - 1);
+    return dt.toISOString().split('T')[0];
+  }, []);
+  const yesterdayDow = useMemo(
+    () => new Date(new Date(yesterdayStr + 'T00:00:00').getTime()).getDay(),
+    [yesterdayStr]
+  );
+  const freezeApplicable = useMemo(() => {
+    if (streakFreezes <= 0) return false;
+    if (freezeUsedDates.includes(yesterdayStr)) return false;
+    const hadTasks = tasks.some(t => !t.isArchived && t.daysOfWeek.includes(yesterdayDow));
+    const dayDone = completions.some(c => c.date === yesterdayStr);
+    return hadTasks && !dayDone;
+  }, [streakFreezes, freezeUsedDates, yesterdayStr, yesterdayDow, tasks, completions]);
 
-  const renderTaskRow = (task: RoutineTask, showDivider: boolean) => {
+  // ---- Drag reorder ----
+  const [drag, setDrag] = useState<{
+    id: string;
+    listId: string;
+    anchorY: number;
+    currentY: number;
+    committedIndex: number;
+    listLength: number;
+    pitch: number;
+  } | null>(null);
+
+  const listItemsOf = (listId: string): RoutineTask[] => {
+    if (listId === 'all') return sortedDayTasks;
+    const g = groupedTasks?.find(x => x.group === listId);
+    return g ? g.items : [];
+  };
+
+  const startDrag = (e: React.PointerEvent, task: RoutineTask) => {
+    e.preventDefault();
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    const listId = groupedTasks
+      ? (groupedTasks.find(x => x.items.some(t => t.id === task.id))?.group ?? 'all')
+      : 'all';
+    const items = listItemsOf(listId);
+    const fromIndex = items.findIndex(t => t.id === task.id);
+    if (fromIndex < 0) return;
+    const ul = (e.target as HTMLElement).closest('ul');
+    const pitch = ul ? ul.scrollHeight / Math.max(1, items.length) : 73;
+    setDrag({
+      id: task.id,
+      listId,
+      anchorY: e.clientY,
+      currentY: e.clientY,
+      committedIndex: fromIndex,
+      listLength: items.length,
+      pitch,
+    });
+  };
+
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!drag) return;
+    const target = Math.max(
+      0,
+      Math.min(drag.listLength - 1, Math.round((e.clientY - drag.anchorY) / drag.pitch))
+    );
+    if (target !== drag.committedIndex) {
+      // Live-swap: commit new order immediately and re-anchor
+      const reordered = listItemsOf(drag.listId).map(t => t.id);
+      reordered.splice(drag.committedIndex, 1);
+      reordered.splice(target, 0, drag.id);
+      reorderTasks(reordered);
+      const anchorDelta = (target - drag.committedIndex) * drag.pitch;
+      setDrag({
+        ...drag,
+        anchorY: drag.anchorY + anchorDelta,
+        committedIndex: target,
+        currentY: e.clientY,
+      });
+      hapticNudge();
+    } else {
+      setDrag({ ...drag, currentY: e.clientY });
+    }
+  };
+
+  const endDrag = () => setDrag(null);
+
+  const renderTaskRow = (    task: RoutineTask,
+    showDivider: boolean,
+    index: number
+  ) => {
     const isCompleted = completedTaskIds.has(task.id);
     const parentRoutine = routines.find(r => r.id === task.routineId);
     const menuOpen = openMenuId === `task-${task.id}`;
+    const isDragging = drag?.id === task.id;
+    const completion = getCompletion(task.id, selectedDate);
+    const type = task.habitType || 'check';
+    const timerRunning = runningTimer?.taskId === task.id;
+    const timerSeconds = timerRunning && runningTimer
+      ? Math.floor((Date.now() - runningTimer.startedAt) / 1000)
+      : 0;
+
+    const counterValue = completion?.value ?? (isCompleted ? (task.targetCount ?? 1) : 0);
+    const timerValueMinutes = (completion?.value ?? 0) + (timerRunning ? timerSeconds / 60 : 0);
+    const timerTargetMin = Math.max(1, task.durationMinutes);
+    void timerTick; // re-render each second while running
 
     return (
-      <li key={task.id}>
+      <li
+        key={task.id}
+        className={`md-item-enter${isDragging ? ' md-item-dragging' : ''}`}
+        style={{
+          ...(isDragging ? { zIndex: 5, position: 'relative' } : undefined),
+          animationDelay: isDragging ? '0ms' : `${Math.min(index * 40, 240)}ms`,
+        }}
+      >
         {showDivider && <hr className="md-divider" />}
         <div
           className={`md-task-row${isCompleted ? ' md-task-row--done' : ''}`}
-          style={isCompleted ? { opacity: 0.65 } : undefined}
+          style={{
+            ...(isCompleted ? { opacity: 0.65 } : undefined),
+            ...(isDragging ? { transform: `translateY(${drag!.currentY - drag!.anchorY}px)`, boxShadow: 'var(--md-elevation-3)', background: 'var(--md-surface-container-high)' } : undefined),
+          }}
         >
+          {/* Drag handle */}
           <button
-            onClick={() => handleToggle(task.id)}
-            className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
-            aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
-            aria-pressed={isCompleted}
+            onPointerDown={(e) => startDrag(e, task)}
+            onPointerMove={onDragMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            className="md-icon-button md-icon-button--plain shrink-0 self-center cursor-grab touch-none"
+            style={{ opacity: 0.4 }}
+            title="Hold & drag to reorder"
+            aria-label={`Reorder ${task.title}`}
           >
-            <span className="md-checkbox__box">
-              <Check className="w-3.5 h-3.5" strokeWidth={3} />
-            </span>
+            <GripVertical className="w-4 h-4" />
           </button>
+
+          {(type === 'check' || (isCompleted && type !== 'count' && type !== 'timer')) && (
+            <button
+              onClick={() => handleToggle(task)}
+              className={`md-checkbox md-ripple${isCompleted ? ' md-checkbox--checked' : ''}`}
+              aria-label={isCompleted ? `Mark ${task.title} incomplete` : `Mark ${task.title} completed`}
+              aria-pressed={isCompleted}
+            >
+              <span className="md-checkbox__box">
+                <Check className="w-3.5 h-3.5" strokeWidth={3} />
+              </span>
+            </button>
+          )}
+
+          {type === 'timer' && !isCompleted && !timerRunning && (
+            <button
+              onClick={() => { setRunningTimer({ taskId: task.id, startedAt: Date.now() }); hapticTick(); }}
+              className="md-checkbox md-checkbox--tinted md-ripple"
+              style={{ color: 'var(--md-primary)' }}
+              title="Start timer"
+              aria-label={`Start timer for ${task.title}`}
+            >
+              <span className="md-checkbox__box" style={{ background: 'transparent' }}>
+                <Play className="w-4 h-4" fill="currentColor" />
+              </span>
+            </button>
+          )}
+
+          {type === 'timer' && timerRunning && !isCompleted && (
+            <button
+              onClick={async () => {
+                // Commit accumulated minutes
+                const mins = Math.floor(timerValueMinutes);
+                setRunningTimer(null);
+                await setTaskProgress(task.id, mins);
+                hapticNudge();
+              }}
+              className="md-checkbox md-ripple"
+              title="Pause timer"
+              aria-label={`Pause timer for ${task.title}`}
+              style={{ color: 'var(--md-primary)' }}
+            >
+              <span className="md-checkbox__box" style={{ background: 'transparent' }}>
+                <Pause className="w-4 h-4" fill="currentColor" />
+              </span>
+            </button>
+          )}
 
           <button
             onClick={() => onOpenEditTaskModal(task)}
@@ -200,7 +463,20 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
             >
               <span className="font-mono">{task.scheduledTime || '--:--'}</span>
               {' · '}
-              {task.durationMinutes}m
+              {type === 'count' ? (
+                <span className="font-mono">{isCompleted ? task.targetCount : counterValue}/{task.targetCount}</span>
+              ) : type === 'timer' ? (
+                timerRunning ? (
+                  <span className="font-mono" style={{ color: 'var(--md-primary)' }}>
+                    {String(Math.floor(timerValueMinutes)).padStart(2, '0')}:
+                    {String(timerSeconds % 60).padStart(2, '0')} running
+                  </span>
+                ) : (
+                  <span className="font-mono">{isCompleted ? timerTargetMin : Math.floor(timerValueMinutes)}/{timerTargetMin}m</span>
+                )
+              ) : (
+                <>{task.durationMinutes}m</>
+              )}
               {parentRoutine ? ` · ${parentRoutine.title}` : ''}
               {' · '}
               <span className="capitalize">{task.category}</span>
@@ -208,6 +484,26 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
               <span className="capitalize">{task.priority}</span>
             </span>
           </button>
+
+          {/* Counter stepper */}
+          {type === 'count' && !isCompleted && (
+            <div className="flex items-center gap-1 shrink-0 self-center">
+              <button
+                onClick={() => { if (counterValue > 0) { setTaskProgress(task.id, counterValue - 1); hapticUndo(); } }}
+                className="md-icon-button md-icon-button--plain"
+                aria-label={`Remove one from ${task.title}`}
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setTaskProgress(task.id, counterValue + 1); hapticNudge(); }}
+                className="md-icon-button md-icon-button--plain"
+                aria-label={`Add one to ${task.title}`}
+              >
+                <Plus className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+              </button>
+            </div>
+          )}
 
           <div className="relative shrink-0 self-center">
             <button
@@ -248,6 +544,9 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
     );
   };
 
+  const percent = todayStats.completionPercentage;
+  const closeMenu = () => setOpenMenuId(null);
+
   return (
     <div className="space-y-4">
       {/* Date pager — phones only (tablet+/desktop: inside the top app bar) */}
@@ -273,12 +572,18 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
               style={{ color: 'var(--md-on-surface-variant)' }}
             >
               <span>{todayStats.completedCount} of {todayStats.totalTasks} done</span>
+              {streakFreezes > 0 && (
+                <span className="flex items-center gap-1 md-label-medium" title="Streak freezes earned">
+                  <Snowflake className="w-3.5 h-3.5" style={{ color: 'var(--md-tertiary)' }} />
+                  {streakFreezes}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         <div
-          className="flex items-center justify-between gap-2 px-3.5 py-2.5"
+          className="flex items-center justify-between gap-2 px-3.5 py-2.5 flex-wrap"
           style={{
             background: 'var(--md-surface-container)',
             borderRadius: '1rem',
@@ -291,10 +596,22 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
               {todayStats.currentStreak}-day streak{percent >= 50 && percent < 100 ? ' — keep it going' : ''}
             </span>
           </span>
-          <button onClick={onOpenShareModal} className="md-button md-button--text md-ripple shrink-0">
-            <Share2 className="w-4 h-4" />
-            Share
-          </button>
+          <span className="flex items-center gap-1">
+            {freezeApplicable && (
+              <button
+                onClick={() => { if (useStreakFreeze(yesterdayStr)) hapticTick(); }}
+                className="md-button md-button--text md-ripple shrink-0"
+                title="Protect your streak through yesterday's miss"
+              >
+                <Snowflake className="w-4 h-4" />
+                Use freeze
+              </button>
+            )}
+            <button onClick={onOpenShareModal} className="md-button md-button--text md-ripple shrink-0">
+              <Share2 className="w-4 h-4" />
+              Share
+            </button>
+          </span>
         </div>
       </section>
 
@@ -333,7 +650,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
         </label>
       </section>
 
-      {/* Task list — flat MD3 list with dividers; tap a row to edit it */}
+      {/* Task list — flat MD3 list with dividers; drag handle to reorder, tap row to edit */}
       {sortedDayTasks.length === 0 ? (
         <section className="md-card md-card--outlined text-center space-y-3 py-10">
           <div
@@ -367,20 +684,84 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
                     {GROUP_META[group].icon}
                     <span>{GROUP_META[group].label}</span>
                   </div>
-                  <ul className="md-card md-card--outlined !p-0 overflow-hidden">
-                    {items.map((task, i) => renderTaskRow(task, i > 0))}
+                  <ul className="md-card md-card--outlined !p-0 overflow-hidden md-list-drag">
+                    {items.map((task, i) => renderTaskRow(task, i > 0, i))}
                   </ul>
                 </section>
               ))}
             </div>
           ) : (
             /* Single filtered list */
-            <ul className="md-card md-card--outlined !p-0 overflow-hidden" aria-label="Today's habits">
-              {sortedDayTasks.map((task, i) => renderTaskRow(task, i > 0))}
+            <ul className="md-card md-card--outlined !p-0 overflow-hidden md-list-drag" aria-label="Today's habits">
+              {sortedDayTasks.map((task, i) => renderTaskRow(task, i > 0, i))}
             </ul>
           )}
         </>
       )}
+
+      {/* Day journal */}
+      <section
+        className="md-card md-card--outlined"
+        style={{ borderRadius: '1.5rem' }}
+        aria-label="Day journal"
+      >
+        <button
+          onClick={() => setJournalOpen(o => !o)}
+          className="w-full flex items-center justify-between md-ripple rounded-2xl px-1 py-1"
+          aria-expanded={journalOpen}
+        >
+          <span className="flex items-center gap-2">
+            <BookHeart className="w-4 h-4" style={{ color: 'var(--md-primary)' }} />
+            <span className="md-title-medium">Day journal</span>
+            {journalEntry?.mood && <span aria-hidden="true">{MOODS.find(x => x.id === journalEntry.mood)?.emoji}</span>}
+          </span>
+          <ChevronDown
+            className="w-4 h-4 transition-transform"
+            style={{ color: 'var(--md-on-surface-variant)', transform: journalOpen ? 'rotate(180deg)' : undefined }}
+          />
+        </button>
+
+        {journalOpen && (
+          <div className="mt-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              {MOODS.map(mo => {
+                const active = journalMood === mo.id;
+                return (
+                  <button
+                    key={mo.id}
+                    onClick={() => saveJournal(journalDraft, active ? undefined : mo.id)}
+                    className={`md-chip md-ripple${active ? ' md-chip--selected' : ''}`}
+                    aria-pressed={active}
+                    aria-label={mo.label}
+                    title={mo.label}
+                  >
+                    <span aria-hidden="true">{mo.emoji}</span>
+                    <span className="hidden sm:inline">{mo.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <label className="md-text-field md-text-field--area">
+              <textarea
+                className="md-text-field__input"
+                rows={2}
+                value={journalDraft}
+                onChange={(e) => saveJournal(e.target.value, journalMood)}
+                placeholder="How did today go?"
+                maxLength={500}
+              />
+              <span className={`md-text-field__label${journalDraft ? ' md-text-field__label--active' : ''}`}>
+                Reflection
+              </span>
+            </label>
+            {journalDirty && (
+              <p className="md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+                Saving…
+              </p>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Daily victory */}
       {percent === 100 && todayStats.totalTasks > 0 && (
@@ -402,6 +783,36 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({
             Share
           </button>
         </section>
+      )}
+
+      {/* Milestone celebration */}
+      {newlyEarnedMilestone != null && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
+          <div className="absolute inset-0" style={{ background: 'var(--md-scrim)' }} onClick={acknowledgeMilestone} />
+          <div
+            className="relative m-4 w-full max-w-xs rounded-[1.75rem] p-6 text-center space-y-3"
+            style={{ background: 'var(--md-surface-container-high)', color: 'var(--md-on-surface)' }}
+          >
+            <div
+              className="w-16 h-16 mx-auto rounded-full flex items-center justify-center md-bounce-in"
+              style={{ background: 'var(--md-primary-container)', color: 'var(--md-on-primary-container)' }}
+            >
+              <PartyPopper className="w-8 h-8" />
+            </div>
+            <h2 className="md-headline-small">{newlyEarnedMilestone}-day milestone!</h2>
+            <p className="md-body-medium" style={{ color: 'var(--md-on-surface-variant)' }}>
+              You've reached a {newlyEarnedMilestone}-day streak. Earned +1 streak freeze to protect it.
+            </p>
+            <div className="flex items-center justify-center gap-1.5 md-label-medium" style={{ color: 'var(--md-tertiary)' }}>
+              <Snowflake className="w-4 h-4" />
+              Freeze stock: {streakFreezes}
+            </div>
+            <button onClick={acknowledgeMilestone} className="md-button md-button--filled md-ripple w-full justify-center">
+              <Check className="w-4 h-4" />
+              Nice
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

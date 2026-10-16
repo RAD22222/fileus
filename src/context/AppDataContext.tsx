@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   Routine,
   RoutineTask,
@@ -6,6 +6,8 @@ import {
   CommunityPost,
   Cheer,
   RoutineTemplate,
+  DayJournalEntry,
+  MILESTONES,
 } from '../types';
 import {
   INITIAL_PRESET_ROUTINES,
@@ -30,6 +32,7 @@ export interface AppDataContextType {
 
   // Actions
   toggleTaskCompletion: (taskId: string, date?: string) => Promise<void>;
+  setTaskProgress: (taskId: string, value: number) => Promise<void>; // count/timer habits
   addRoutine: (routine: Omit<Routine, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateRoutine: (id: string, updates: Partial<Routine>) => Promise<void>;
   deleteRoutine: (id: string) => Promise<void>;
@@ -37,10 +40,32 @@ export interface AppDataContextType {
   updateTask: (id: string, updates: Partial<RoutineTask>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   importRoutineTemplate: (template: RoutineTemplate) => Promise<void>;
+  /** Reorder the tasks of one day-group; ids in their new display order */
+  reorderTasks: (orderedIds: string[]) => Promise<void>;
+
+  // Day journal
+  journal: DayJournalEntry[];
+  saveJournalEntry: (date: string, note: string, mood?: DayJournalEntry['mood']) => void;
+  getJournalEntry: (date: string) => DayJournalEntry | undefined;
+
+  // Streak freeze (protects a streak through a missed day; earned every 7-day streak)
+  streakFreezes: number;
+  freezeUsedDates: string[]; // dates the freeze bridged
+  useStreakFreeze: (date: string) => boolean;
+
+  // Milestones
+  achievedMilestones: number[];
+  newlyEarnedMilestone: number | null; // for celebration animation
+  acknowledgeMilestone: () => void;
 
   // Data portability — replaces cloud sync (move data between devices via file)
   exportBackup: () => string;
-  importBackup: (data: { routines?: Routine[]; tasks?: RoutineTask[]; completions?: TaskCompletion[] }) => void;
+  importBackup: (data: {
+    routines?: Routine[];
+    tasks?: RoutineTask[];
+    completions?: TaskCompletion[];
+    journal?: DayJournalEntry[];
+  }) => void;
 
   // Social
   addCommunityPost: (title: string, content: string, streakCount: number, routineName: string) => Promise<void>;
@@ -62,6 +87,10 @@ const STORAGE_KEY_ROUTINES = 'habitpulse_guest_routines';
 const STORAGE_KEY_TASKS = 'habitpulse_guest_tasks';
 const STORAGE_KEY_COMPLETIONS = 'habitpulse_guest_completions';
 const STORAGE_KEY_POSTS = 'habitpulse_guest_posts';
+const STORAGE_KEY_JOURNAL = 'habitpulse_guest_journal';
+const STORAGE_KEY_FREEZES = 'habitpulse_freezes'; // { available, usedDates }
+const STORAGE_KEY_MILESTONES_SEEN = 'habitpulse_milestones_seen';
+const MAX_STREAK_FREEZES = 5;
 const DEVICE_ID_KEY = 'habitpulse_device_id';
 
 function generateRandomCode(): string {
@@ -129,6 +158,22 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return [];
   });
 
+  const [journal, setJournal] = useState<DayJournalEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_JOURNAL);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  const [freezeState, setFreezeState] = useState<{ available: number; usedDates: string[] }>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_FREEZES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { available: 2, usedDates: [] };
+  });
+
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_POSTS);
@@ -166,14 +211,21 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
     localStorage.setItem(STORAGE_KEY_COMPLETIONS, JSON.stringify(completions));
     localStorage.setItem(STORAGE_KEY_POSTS, JSON.stringify(communityPosts));
-  }, [routines, tasks, completions, communityPosts]);
+    localStorage.setItem(STORAGE_KEY_JOURNAL, JSON.stringify(journal));
+  }, [routines, tasks, completions, communityPosts, journal]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_FREEZES, JSON.stringify(freezeState));
+  }, [freezeState]);
 
   // Recurring 30s background notification & reminder check
   useEffect(() => {
     const checkSchedule = () => {
-      const todayTasks = tasks.filter(t => !t.isArchived);
+      const todayStr = getTodayString();
+      const todayDayOfWeek = new Date().getDay();
+      const todayTasks = tasks.filter(t => !t.isArchived && t.daysOfWeek.includes(todayDayOfWeek));
       const completedSet = new Set(
-        completions.filter(c => c.date === getTodayString()).map(c => c.taskId)
+        completions.filter(c => c.date === todayStr).map(c => c.taskId)
       );
       const enrichedTasks = todayTasks.map(t => {
         const parentRoutine = routines.find(r => r.id === t.routineId);
@@ -181,6 +233,9 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
           id: t.id,
           title: t.title,
           scheduledTime: t.scheduledTime,
+          reminderTime: t.reminderTime ?? null,
+          habitType: t.habitType ?? 'check',
+          targetCount: t.targetCount ?? null,
           routineTitle: parentRoutine?.title,
         };
       });
@@ -205,18 +260,104 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Toggle OFF: Remove completion
       setCompletions(prev => prev.filter((_, idx) => idx !== existingIndex));
     } else {
-      // Toggle ON: Add completion
+      // Toggle ON: Add completion (full value for counter/timer habits)
+      const task = tasks.find(t => t.id === taskId);
+      let value: number | undefined;
+      if (task?.habitType === 'count') value = task.targetCount ?? 1;
+      else if (task?.habitType === 'timer') value = Math.max(1, task.durationMinutes);
       const newRecord: TaskCompletion = {
         id: completionId,
         userId: 'local-user',
         taskId,
         date,
         completedAt: new Date().toISOString(),
+        value,
       };
       setCompletions(prev => [...prev, newRecord]);
       notificationService.playChime('success');
     }
-  }, [completions, selectedDate]);
+  }, [completions, selectedDate, tasks]);
+
+  // Progress for counter/timer habits: value in completion record; done when >= target
+  const setTaskProgress = useCallback(async (taskId: string, value: number) => {
+    const date = selectedDate;
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    const target = task.habitType === 'count'
+      ? (task.targetCount ?? 1)
+      : Math.max(1, task.durationMinutes);
+    const clamped = Math.max(0, Math.min(target, value));
+
+    setCompletions(prev => {
+      const idx = prev.findIndex(c => c.taskId === taskId && c.date === date);
+      const existing = idx >= 0 ? prev[idx] : null;
+      if (clamped === 0 && existing) {
+        // Zero progress → remove the record
+        return prev.filter((_, i) => i !== idx);
+      }
+      if (existing) {
+        const next = [...prev];
+        next[idx] = { ...existing, value: clamped };
+        return next;
+      }
+      if (clamped === 0) return prev;
+      return [
+        ...prev,
+        {
+          id: `local-user_${taskId}_${date}`.replace(/[^a-zA-Z0-9_\-]/g, '_'),
+          userId: 'local-user',
+          taskId,
+          date,
+          completedAt: new Date().toISOString(),
+          value: clamped,
+        },
+      ];
+    });
+  }, [tasks, selectedDate]);
+
+  /** Reorder the visible rows of a day-group; ids in new display order. */
+  const reorderTasks = useCallback(async (orderedIds: string[]) => {
+    const now = new Date().toISOString();
+    setTasks(prev =>
+      prev.map(t => {
+        const idx = orderedIds.indexOf(t.id);
+        return idx >= 0 ? { ...t, order: idx, updatedAt: now } : t;
+      })
+    );
+  }, []);
+
+  // ---- Day journal ----
+  const saveJournalEntry = useCallback((date: string, note: string, mood?: DayJournalEntry['mood']) => {
+    setJournal(prev => {
+      const idx = prev.findIndex(j => j.date === date);
+      if (note.trim() === '' && !mood) {
+        // Empty entry → remove it
+        return prev.filter(j => j.date !== date);
+      }
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], note, mood: mood ?? next[idx].mood };
+        return next;
+      }
+      return [...prev, { date, note, mood }];
+    });
+  }, []);
+
+  const getJournalEntry = useCallback(
+    (date: string) => journal.find(j => j.date === date),
+    [journal]
+  );
+
+  // ---- Streak freeze ----
+  const useStreakFreeze = useCallback((date: string): boolean => {
+    let success = false;
+    setFreezeState(prev => {
+      if (prev.available <= 0 || prev.usedDates.includes(date)) return prev;
+      success = true;
+      return { available: prev.available - 1, usedDates: [...prev.usedDates, date] };
+    });
+    return success;
+  }, []);
 
   const addRoutine = useCallback(async (routineData: Omit<Routine, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> => {
     const id = `rtn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -312,17 +453,24 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         routines,
         tasks,
         completions,
+        journal,
       },
       null,
       2
     );
-  }, [routines, tasks, completions]);
+  }, [routines, tasks, completions, journal]);
 
   // Data portability: restore from a backup file (moves data between devices)
-  const importBackup = useCallback((data: { routines?: Routine[]; tasks?: RoutineTask[]; completions?: TaskCompletion[] }) => {
+  const importBackup = useCallback((data: {
+    routines?: Routine[];
+    tasks?: RoutineTask[];
+    completions?: TaskCompletion[];
+    journal?: DayJournalEntry[];
+  }) => {
     if (Array.isArray(data.routines)) setRoutines(data.routines);
     if (Array.isArray(data.tasks)) setTasks(data.tasks);
     if (Array.isArray(data.completions)) setCompletions(data.completions);
+    if (Array.isArray(data.journal)) setJournal(data.journal);
   }, []);
 
   const addCommunityPost = useCallback(async (title: string, content: string, streakCount: number, routineName: string) => {
@@ -352,7 +500,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     notificationService.playChime('cheer');
   }, []);
 
-  // Computed stats: streak, today percentage, completion count
+  // Computed stats: streak (freeze-aware), today percentage, completion count
   const todayStats = useMemo(() => {
     const targetDate = selectedDate;
     const [year, month, day] = targetDate.split('-').map(Number);
@@ -360,52 +508,66 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const activeTasksForDay = tasks.filter(t => !t.isArchived && t.daysOfWeek.includes(dayOfWeek));
     const completedForDay = completions.filter(c => c.date === targetDate);
-    const completedCount = activeTasksForDay.filter(t =>
-      completedForDay.some(c => c.taskId === t.id)
-    ).length;
+    // count/timer habits count only when they reached their target
+    const isDone = (t: RoutineTask): boolean => {
+      const c = completedForDay.find(cc => cc.taskId === t.id);
+      if (!c) return false;
+      if (t.habitType === 'count') return (c.value ?? t.targetCount ?? 1) >= (t.targetCount ?? 1);
+      if (t.habitType === 'timer') return (c.value ?? Math.max(1, t.durationMinutes)) >= Math.max(1, t.durationMinutes);
+      return true;
+    };
+    const completedCount = activeTasksForDay.filter(isDone).length;
 
     const totalTasks = activeTasksForDay.length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
 
-    // Calculate streaks across completions
-    const completionDates = Array.from(new Set(completions.map(c => c.date))).sort();
+    // Collect "kept" days: completions + freeze-bridged misses
+    const keptDates = new Set(completions.map(c => c.date));
+    freezeState.usedDates.forEach(d => keptDates.add(d));
+
+    // A day "counts" toward a streak only if at least one habit was scheduled & done
+    const daysWithTasks = new Set<string>();
+    const seenDates = new Set<string>();
+    completions.forEach(c => {
+      if (!seenDates.has(c.date)) {
+        seenDates.add(c.date);
+        daysWithTasks.add(c.date);
+      }
+    });
+
+    const DAY_MS = 24 * 3600 * 1000;
+    const dateStr = (d: Date) => d.toISOString().split('T')[0];
+
     let currentStreak = 0;
-    let bestStreak = 0;
-    let tempStreak = 0;
-
     const todayStr = getTodayString();
-    let checkDate = new Date();
+    const yesterday = new Date(Date.now() - DAY_MS);
+    const todayDone = keptDates.has(todayStr);
+    const yesterdayKept = keptDates.has(dateStr(yesterday));
 
-    // Check if today or yesterday is completed to keep streak alive
-    const todayDone = completions.some(c => c.date === todayStr);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    const yesterdayDone = completions.some(c => c.date === yesterdayStr);
-
-    if (todayDone || yesterdayDone) {
-      // Calculate backwards
-      let cursor = todayDone ? new Date() : yesterday;
+    if (todayDone || yesterdayKept) {
+      let cursor = todayDone ? new Date() : new Date(yesterday);
       while (true) {
-        const dStr = cursor.toISOString().split('T')[0];
-        const hasDone = completions.some(c => c.date === dStr);
-        if (hasDone) {
-          currentStreak++;
-          cursor.setDate(cursor.getDate() - 1);
+        const dStr = dateStr(cursor);
+        if (keptDates.has(dStr)) {
+          // Freeze-bridged miss days keep the streak alive but don't extend the count
+          if (!freezeState.usedDates.includes(dStr)) currentStreak++;
+          cursor = new Date(cursor.getTime() - DAY_MS);
         } else {
           break;
         }
       }
     }
 
-    // Best streak calculation
+    // Best streak over completion history (consecutive days)
+    const completionDates = Array.from(daysWithTasks).sort();
+    let bestStreak = 0;
     if (completionDates.length > 0) {
-      tempStreak = 1;
+      let tempStreak = 1;
       bestStreak = 1;
       for (let i = 1; i < completionDates.length; i++) {
         const prev = new Date(completionDates[i - 1]);
         const curr = new Date(completionDates[i]);
-        const diffDays = Math.round((curr.getTime() - prev.getTime()) / (1000 * 3600 * 24));
+        const diffDays = Math.round((curr.getTime() - prev.getTime()) / DAY_MS);
         if (diffDays === 1) {
           tempStreak++;
           if (tempStreak > bestStreak) bestStreak = tempStreak;
@@ -423,7 +585,53 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentStreak: Math.max(currentStreak, todayDone ? 1 : 0),
       bestStreak: Math.max(bestStreak, currentStreak),
     };
-  }, [tasks, completions, selectedDate]);
+  }, [tasks, completions, selectedDate, freezeState]);
+
+  // ---- Milestones: badges at 7/14/30/60/100/200/365-day streaks ----
+  const achievedMilestones = useMemo(
+    () => MILESTONES.filter(m => todayStats.bestStreak >= m),
+    [todayStats.bestStreak]
+  );
+
+  // Detect a milestone reached this session but not celebrated yet
+  const [newlyEarnedMilestone, setNewlyEarnedMilestone] = useState<number | null>(() => {
+    try {
+      const seen: number[] = JSON.parse(localStorage.getItem(STORAGE_KEY_MILESTONES_SEEN) || '[]');
+      void seen;
+      return null; // never celebrate on cold load
+    } catch {
+      return null;
+    }
+  });
+
+  const seenMilestonesRef = useRef<number[]>(
+    (() => {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_MILESTONES_SEEN) || '[]');
+      } catch {
+        return [];
+      }
+    })()
+  );
+
+  useEffect(() => {
+    const best = todayStats.bestStreak;
+    const fresh = MILESTONES.find(m => best >= m && !seenMilestonesRef.current.includes(m));
+    if (fresh && completions.some(c => c.date === getTodayString())) {
+      seenMilestonesRef.current = [...seenMilestonesRef.current, fresh];
+      localStorage.setItem(STORAGE_KEY_MILESTONES_SEEN, JSON.stringify(seenMilestonesRef.current));
+      setNewlyEarnedMilestone(fresh);
+      // Reward: +1 streak freeze per milestone (stock-capped)
+      setFreezeState(prev =>
+        prev.available < MAX_STREAK_FREEZES
+          ? { ...prev, available: prev.available + 1 }
+          : prev
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todayStats.bestStreak]);
+
+  const acknowledgeMilestone = useCallback(() => setNewlyEarnedMilestone(null), []);
 
   return (
     <AppDataContext.Provider
@@ -437,15 +645,26 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
         selectedDate,
         setSelectedDate,
         toggleTaskCompletion,
+        setTaskProgress,
         addRoutine,
         updateRoutine,
         deleteRoutine,
         addTask,
         updateTask,
         deleteTask,
+        reorderTasks,
         importRoutineTemplate,
         exportBackup,
         importBackup,
+        journal,
+        saveJournalEntry,
+        getJournalEntry,
+        streakFreezes: freezeState.available,
+        freezeUsedDates: freezeState.usedDates,
+        useStreakFreeze,
+        achievedMilestones,
+        newlyEarnedMilestone,
+        acknowledgeMilestone,
         addCommunityPost,
         addCheer,
         todayStats,

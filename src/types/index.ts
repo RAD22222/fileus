@@ -3,6 +3,10 @@ export type TaskCategory = 'health' | 'productivity' | 'mindfulness' | 'fitness'
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CheerReaction = 'fire' | 'clap' | 'rocket' | 'muscle' | 'heart';
+export type HabitType = 'check' | 'count' | 'timer';
+export type Mood = 'great' | 'good' | 'neutral' | 'low';
+
+export const MILESTONES = [7, 14, 30, 60, 100, 200, 365] as const;
 
 export interface UserProfile {
   id: string;
@@ -45,6 +49,12 @@ export interface RoutineTask {
   daysOfWeek: number[]; // 0-6
   isArchived: boolean;
   order: number;
+  /** How completion works: checkbox, X-of-N counter, or accumulated timer (minutes) */
+  habitType?: HabitType;
+  /** Counter target (habitType='count') */
+  targetCount?: number;
+  /** Per-habit reminder time override, HH:mm (null = follow scheduled time) */
+  reminderTime?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +66,15 @@ export interface TaskCompletion {
   date: string; // YYYY-MM-DD
   completedAt: string;
   notes?: string;
+  /** Progress value for count/timer habits (units done or minutes accumulated) */
+  value?: number;
+}
+
+/** One free-text reflection per day */
+export interface DayJournalEntry {
+  date: string; // YYYY-MM-DD
+  note: string;
+  mood?: Mood;
 }
 
 export interface CommunityPost {

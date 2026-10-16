@@ -844,6 +844,56 @@
   line-height: 1;
 }
 
+/* --------------------------------------------------------------------------
+   M3 Expressive motion
+   -------------------------------------------------------------------------- */
+.md-view-enter-forward { animation: md-view-in 320ms var(--md-easing-emphasized) both; --md-view-dx: 24px; }
+.md-view-enter-backward { animation: md-view-in 320ms var(--md-easing-emphasized) both; --md-view-dx: -24px; }
+@keyframes md-view-in {
+  from { opacity: 0; transform: translateX(var(--md-view-dx, 16px)); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Staggered row entrance */
+.md-item-enter { animation: md-item-in 300ms var(--md-easing-emphasized) both; }
+@keyframes md-item-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Springy badge pop */
+.md-bounce-in { animation: md-bounce-in 480ms var(--md-easing-emphasized) both; }
+@keyframes md-bounce-in {
+  0% { transform: scale(0.4); opacity: 0; }
+  55% { transform: scale(1.12); opacity: 1; }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* Drag reorder */
+.md-list-drag { user-select: none; -webkit-user-select: none; }
+.md-item-dragging { transition: background-color 120ms; }
+.md-item-dragging .md-task-row {
+  transition: box-shadow 120ms var(--md-easing-standard), background-color 120ms var(--md-easing-standard);
+}
+
+/* Borderless icon button (steppers, grips) */
+.md-icon-button--plain {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* Colored action circle (timer start/pause) */
+.md-checkbox--tinted { color: var(--md-primary); }
+
+/* Free-text area field */
+.md-text-field--area { }
+.md-text-field--area .md-text-field__input {
+  resize: none;
+  min-height: 3.5rem;
+}
+
 /* ==========================================================================
    Top app bar
    ========================================================================== */
@@ -914,6 +964,13 @@
 }
 .md-nav-item:active .md-nav-item__indicator { transform: scale(0.88); }
 .md-nav-item--active { color: var(--md-on-secondary-container); }
+.md-nav-item__indicator svg { transition: transform 260ms var(--md-easing-emphasized); }
+.md-nav-item--active .md-nav-item__indicator svg { animation: md-icon-pop 340ms var(--md-easing-emphasized); }
+@keyframes md-icon-pop {
+  0% { transform: scale(0.55) rotate(-14deg); }
+  60% { transform: scale(1.16) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
 .md-nav-item--active .md-nav-item__indicator {
   background: var(--md-secondary-container);
   animation: md-nav-indicator-in 300ms var(--md-easing-emphasized);

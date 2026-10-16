@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useTheme } from '../context/ThemeContext';
-import { COLOR_SCHEME_ACCENTS, hexToRgba } from '../lib/themes';
+import { getAccents, hexToRgba } from '../lib/themes';
 import { CheerReaction } from '../types';
 
 interface SocialMotivationProps {
@@ -27,8 +27,8 @@ export const SocialMotivation: React.FC<SocialMotivationProps> = ({
     todayStats,
     syncCode,
   } = useAppData();
-  const { colorScheme } = useTheme();
-  const accents = COLOR_SCHEME_ACCENTS[colorScheme];
+  const { colorScheme, customHue } = useTheme();
+  const accents = getAccents(colorScheme, customHue);
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedShareText, setCopiedShareText] = useState(false);

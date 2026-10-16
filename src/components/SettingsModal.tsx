@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Sun,
   Moon,
@@ -12,9 +12,12 @@ import {
   Bell,
   ChevronRight,
   Database,
+  Smartphone,
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, COLOR_SCHEMES } from '../context/ThemeContext';
 import { useAppData } from '../context/AppDataContext';
+import { toneHex } from '../lib/dynamicColor';
+import { canPromptInstall, promptInstall, isStandalonePwa } from '../lib/pwa';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,9 +39,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setFontSize,
     colorScheme,
     setColorScheme,
+    customHue,
+    setCustomHue,
   } = useTheme();
 
   const { exportBackup, importBackup } = useAppData();
+
+  // Live preview swatch for the custom hue (tone 40 light / 80 dark / 90 container)
+  const customSwatch = `#${toneHex(40, 0.13, customHue)}`;
+  const customSwatchDark = `#${toneHex(80, 0.13, customHue)}`;
+  const customSwatch2 = `#${toneHex(90, 0.13, customHue)}`;
+
+  // PWA install state
+  const [installedPwa, setInstalledPwa] = useState(isStandalonePwa());
+  const [installReady, setInstallReady] = useState(canPromptInstall());
+  useEffect(() => {
+    const onReady = () => setInstallReady(true);
+    const onInstalled = () => {
+      setInstalledPwa(true);
+      setInstallReady(false);
+    };
+    window.addEventListener('habitpulse:install-available', onReady);
+    window.addEventListener('habitpulse:installed', onInstalled);
+    return () => {
+      window.removeEventListener('habitpulse:install-available', onReady);
+      window.removeEventListener('habitpulse:installed', onInstalled);
+    };
+  }, []);
+  const handleInstall = async () => {
+    await promptInstall();
+  };
+  void COLOR_SCHEMES;
   const [exportSuccess, setExportSuccess] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
   const [importError, setImportError] = useState(false);
@@ -168,8 +199,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   primaryDark: '#a4c9ff',
                   container: '#d2e4ff',
                 },
+                ...(
+                  colorScheme === 'custom'
+                    ? [{
+                        id: 'custom' as const,
+                        label: 'Custom',
+                        primary: customSwatch,
+                        primaryDark: customSwatchDark,
+                        container: customSwatch2,
+                      }]
+                    : [{
+                        id: 'custom' as const,
+                        label: 'Custom color',
+                        primary: 'transparent',
+                        primaryDark: 'transparent',
+                        container: 'transparent',
+                      }]
+                ),
               ]).map(opt => {
                 const selected = colorScheme === opt.id;
+                const isCustomSlot = opt.id === 'custom';
                 return (
                   <button
                     key={opt.id}
@@ -185,33 +234,106 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     aria-label={`${opt.label} color`}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className="w-6 h-6 rounded-full shrink-0"
-                        style={{ background: opt.primary, boxShadow: 'var(--md-elevation-1)' }}
-                        aria-hidden="true"
-                      />
-                      <span
-                        className="w-6 h-6 rounded-full shrink-0"
-                        style={{ background: opt.primaryDark, border: '2px solid var(--md-surface-container-highest)' }}
-                        aria-hidden="true"
-                      />
+                      {isCustomSlot && !selected ? (
+                        <span
+                          className="w-12 h-12 rounded-full shrink-0 -ml-1"
+                          style={{
+                            background: 'conic-gradient(#f14e4e, #f1a24e, #e6e54e, #56e358, #4ed7f1, #735ef1, #f14ec4, #f14e4e)',
+                            boxShadow: 'var(--md-elevation-1)',
+                          }}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <>
+                          <span
+                            className="w-6 h-6 rounded-full shrink-0"
+                            style={{ background: opt.primary, boxShadow: 'var(--md-elevation-1)' }}
+                            aria-hidden="true"
+                          />
+                          <span
+                            className="w-6 h-6 rounded-full shrink-0"
+                            style={{ background: opt.primaryDark, border: '2px solid var(--md-surface-container-highest)' }}
+                            aria-hidden="true"
+                          />
+                        </>
+                      )}
                       {selected && (
                         <Check className="w-4 h-4 ml-auto shrink-0" strokeWidth={3} style={{ color: 'var(--md-primary)' }} />
                       )}
                     </div>
-                    <div className="flex items-center gap-1 mb-1.5" aria-hidden="true">
-                      <span className="flex-1 h-4 rounded-l-full" style={{ background: opt.container }} />
-                      <span className="flex-1 h-4" style={{ background: opt.primary }} />
-                      <span className="flex-1 h-4 rounded-r-full" style={{ background: opt.primaryDark }} />
-                    </div>
+                    {(!isCustomSlot || selected) && (
+                      <div className="flex items-center gap-1 mb-1.5" aria-hidden="true">
+                        <span className="flex-1 h-4 rounded-l-full" style={{ background: opt.container }} />
+                        <span className="flex-1 h-4" style={{ background: opt.primary }} />
+                        <span className="flex-1 h-4 rounded-r-full" style={{ background: opt.primaryDark }} />
+                      </div>
+                    )}
                     <span className="md-label-large block truncate">{opt.label}</span>
                   </button>
                 );
               })}
             </div>
+
+            {colorScheme === 'custom' && (
+              <div className="mt-3 space-y-2">
+                <div
+                  className="h-8 w-full rounded-full"
+                  style={{
+                    background: `linear-gradient(90deg, ${customSwatch2}, ${customSwatch}, ${customSwatchDark})`,
+                  }}
+                  aria-hidden="true"
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  step="1"
+                  value={customHue}
+                  onChange={(e) => setCustomHue(Number(e.target.value))}
+                  className="md-slider w-full"
+                  style={{ ['--md-slider-progress' as string]: `${(customHue / 360) * 100}%` }}
+                  aria-label="Source color hue"
+                />
+                <div className="flex items-center justify-between md-label-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+                  <span>Drag to re-tint the whole app — Material You style</span>
+                  <span className="font-mono">{customHue}°</span>
+                </div>
+              </div>
+            )}
+
             <p className="md-body-small mt-2" style={{ color: 'var(--md-on-surface-variant)' }}>
               Applied instantly in light and dark mode.
             </p>
+          </section>
+
+          {/* Install the app (PWA) */}
+          <section>
+            <h3 className="md-title-small mb-2" style={{ color: 'var(--md-on-surface-variant)' }}>
+              Install app
+            </h3>
+            {installedPwa ? (
+              <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'var(--md-secondary-container)', color: 'var(--md-on-secondary-container)' }}>
+                <Check className="w-5 h-5" />
+                <span className="md-body-medium">
+                  Running as an installed app — works offline
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={handleInstall}
+                  className="md-button md-button--filled md-ripple"
+                  disabled={!canPromptInstall()}
+                  style={canPromptInstall() ? undefined : { opacity: 0.6 }}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  {canPromptInstall() ? 'Add to Home screen' : 'Not available yet'}
+                </button>
+                <span className="md-body-small" style={{ color: 'var(--md-on-surface-variant)' }}>
+                  Fullscreen, offline mode, reminders — no store needed.
+                </span>
+              </div>
+            )}
           </section>
 
           {/* High contrast switch */}

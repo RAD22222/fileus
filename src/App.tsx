@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CalendarCheck,
   Layers,
@@ -32,6 +32,17 @@ const NAV_ITEMS: { id: AppTab; label: string; icon: typeof CalendarCheck }[] = [
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>('today');
+  const [viewDirection, setViewDirection] = useState<'forward' | 'backward'>('forward');
+  const prevTabRef = useRef<AppTab>('today');
+
+  const changeTab = (id: AppTab) => {
+    if (id === activeTab) return;
+    const from = NAV_ITEMS.findIndex(n => n.id === prevTabRef.current);
+    const to = NAV_ITEMS.findIndex(n => n.id === id);
+    setViewDirection(to > from ? 'forward' : 'backward');
+    prevTabRef.current = id;
+    setActiveTab(id);
+  };
 
   // Modals state
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -83,7 +94,7 @@ const AppContent: React.FC = () => {
     return (
       <button
         key={item.id}
-        onClick={() => setActiveTab(item.id)}
+        onClick={() => changeTab(item.id)}
         className={`md-nav-item md-ripple${active ? ' md-nav-item--active' : ''}${inRail ? ' w-full' : ' flex-1'}`}
         aria-current={active ? 'page' : undefined}
         aria-label={item.label}
@@ -104,7 +115,10 @@ const AppContent: React.FC = () => {
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
       />
 
-      <main className="relative mx-auto w-full max-w-3xl px-4 pt-3 pb-36 md:pb-10 md:pl-28">
+      <main
+        key={activeTab}
+        className={`relative mx-auto w-full max-w-3xl px-4 pt-3 pb-36 md:pb-10 md:pl-28 md-view-enter-${viewDirection}`}
+      >
         {activeTab === 'today' && (
           <TodaySchedule
             onOpenAddTaskModal={handleOpenAddTask}

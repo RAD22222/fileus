@@ -121,37 +121,91 @@ class NotificationService {
       this.playChime('alert');
     }
 
-    // Try native system push notification
+    // Prefer the service worker (works while the PWA is installed & closed-ish)
+    const sw = (navigator as any)?.serviceWorker;
+    if (typeof navigator !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && sw?.ready) {
+      sw.ready
+        .then((reg: any) => {
+          if (reg.showNotification) {
+            reg.showNotification(title, {
+              body,
+              tag: tag || 'habitpulse-routine',
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              vibrate: [60, 40, 60],
+            });
+            return;
+          }
+          this.fallbackLocal(title, body, icon, tag);
+        })
+        .catch(() => this.fallbackLocal(title, body, icon, tag));
+      this.inAppListeners.forEach(listener => listener(title, body, icon));
+      return;
+    }
+
+    this.fallbackLocal(title, body, icon, tag);
+    // Always dispatch to in-app notification center
+    this.inAppListeners.forEach(listener => listener(title, body, icon));
+  }
+
+  private fallbackLocal(title: string, body: string, icon: string, tag?: string): void {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
         new Notification(title, {
           body,
           tag: tag || 'habitpulse-routine',
-          icon: '/favicon.ico',
+          icon: '/icons/icon-192.png',
         });
       } catch (err) {
         console.warn('Native notification failed, falling back to in-app toast:', err);
       }
     }
-
-    // Always dispatch to in-app notification center
-    this.inAppListeners.forEach(listener => listener(title, body, icon));
   }
 
   public checkUpcomingTaskReminders(
-    tasks: Array<{ id: string; title: string; scheduledTime: string; routineTitle?: string }>,
+    tasks: Array<{
+      id: string;
+      title: string;
+      scheduledTime: string;
+      reminderTime?: string | null;
+      habitType?: string;
+      targetCount?: number | null;
+      routineTitle?: string;
+    }>,
     completedIds: Set<string>,
     minutesBefore: number = 5,
     soundEnabled: boolean = true
   ) {
     const now = new Date();
-    const currentHours = now.getHours();
-    const currentMins = now.getMinutes();
-    const currentTotalMins = currentHours * 60 + currentMins;
+    const currentTotalMins = now.getHours() * 60 + now.getMinutes();
     const todayKey = now.toISOString().split('T')[0];
 
     tasks.forEach(task => {
-      if (!task.scheduledTime || completedIds.has(task.id)) return;
+      const isDone = completedIds.has(task.id);
+      const type = task.habitType || 'check';
+      const label = type === 'count' ? `Target: ${task.targetCount ?? '—'} · ` : '';
+
+      // 1 — explicit per-habit reminder time (fires exactly at that minute)
+      if (task.reminderTime && !isDone) {
+        const [rh, rm] = task.reminderTime.split(':').map(Number);
+        if (!isNaN(rh) && !isNaN(rm)) {
+          const reminderMins = rh * 60 + rm;
+          if (currentTotalMins === reminderMins) {
+            const rKey = `${todayKey}_reminder_${task.id}`;
+            if (!this.sentNotificationsToday.has(rKey)) {
+              this.sentNotificationsToday.add(rKey);
+              this.sendNotification(`Reminder: ${task.title}`, {
+                body: `${label}${task.routineTitle || 'Scheduled Routine'}`,
+                tag: rKey,
+                playSound: soundEnabled,
+              });
+            }
+          }
+        }
+      }
+
+      // 2 — general "N minutes before scheduled time" reminder
+      if (!task.scheduledTime || isDone) return;
 
       const [h, m] = task.scheduledTime.split(':').map(Number);
       if (isNaN(h) || isNaN(m)) return;
@@ -166,7 +220,7 @@ class NotificationService {
 
         const timeMsg = diff === 0 ? 'Starting now!' : `In ${diff} minute${diff > 1 ? 's' : ''}`;
         this.sendNotification(`Routine Reminder: ${task.title}`, {
-          body: `${timeMsg} • ${task.routineTitle || 'Scheduled Routine'}`,
+          body: `${timeMsg} • ${label}${task.routineTitle || 'Scheduled Routine'}`,
           tag: notifKey,
           playSound: soundEnabled,
         });

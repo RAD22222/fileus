@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeMode } from '../types';
 import { ColorScheme } from '../lib/themes';
+import { setDynamicPalette } from '../lib/dynamicColor';
 
-export const COLOR_SCHEMES: ColorScheme[] = ['green', 'blue'];
+export const COLOR_SCHEMES: ColorScheme[] = ['green', 'blue', 'custom'];
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -15,6 +16,8 @@ interface ThemeContextType {
   toggleDarkQuick: () => void;
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => void;
+  customHue: number;
+  setCustomHue: (hue: number) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -26,6 +29,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [colorScheme, setColorSchemeState] = useState<ColorScheme>(() => {
     return (localStorage.getItem('habitpulse_color_scheme') as ColorScheme) || 'green';
+  });
+
+  const [customHue, setCustomHueState] = useState<number>(() => {
+    return Number(localStorage.getItem('habitpulse_custom_hue') || 258);
   });
 
   const [highContrast, setHighContrastState] = useState<boolean>(() => {
@@ -70,16 +77,33 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('habitpulse_high_contrast', String(highContrast));
   }, [highContrast]);
 
-  // Color scheme (Material You source palette) → data attribute on <html>
+  // Color scheme (Material You source palette) → data attribute / runtime palette
   useEffect(() => {
     const root = document.documentElement;
     if (colorScheme === 'green') {
       root.removeAttribute('data-color');
+      setDynamicPalette(null);
+    } else if (colorScheme === 'custom') {
+      root.removeAttribute('data-color');
+      setDynamicPalette(customHue);
     } else {
       root.setAttribute('data-color', colorScheme);
+      setDynamicPalette(null);
     }
     localStorage.setItem('habitpulse_color_scheme', colorScheme);
-  }, [colorScheme]);
+  }, [colorScheme, customHue]);
+
+  // Keep the browser-chrome tint (status bar in installed PWA) in sync
+  useEffect(() => {
+    const root = document.documentElement;
+    const style = getComputedStyle(root);
+    const bg = style.getPropertyValue('--md-surface').trim();
+    if (bg) {
+      document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+        (meta as HTMLMetaElement).content = bg;
+      });
+    }
+  }, [isDark, colorScheme, customHue]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -108,6 +132,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setColorSchemeState(scheme);
   };
 
+  const setCustomHue = (hue: number) => {
+    setCustomHueState(hue);
+    localStorage.setItem('habitpulse_custom_hue', String(Math.round(hue)));
+  };
+
   const toggleDarkQuick = () => {
     setTheme(isDark ? 'light' : 'dark');
   };
@@ -125,6 +154,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         toggleDarkQuick,
         colorScheme,
         setColorScheme,
+        customHue,
+        setCustomHue,
       }}
     >
       {children}

@@ -1,4 +1,6 @@
-export type ColorScheme = 'green' | 'blue';
+import { toneHex } from './dynamicColor';
+
+export type ColorScheme = 'green' | 'blue' | 'custom';
 
 /** Convert #rrggbb to rgba() with alpha — for canvas art over dark surfaces. */
 export function hexToRgba(hex: string, alpha: number): string {
@@ -9,8 +11,7 @@ export function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/** Dark-scheme accents for canvas art + confetti — kept in sync with the CSS token blocks. */
-export const COLOR_SCHEME_ACCENTS: Record<ColorScheme, {
+interface SchemeAccents {
   /** MD3 dark-scheme primary (tone 80) — the accent on dark poster art */
   primaryDark: string;
   /** Dark surface background used by the poster */
@@ -21,7 +22,10 @@ export const COLOR_SCHEME_ACCENTS: Record<ColorScheme, {
   posterSubtext: string;
   /** Confetti particle set */
   confetti: string[];
-}> = {
+}
+
+/** Static dark-scheme accents for the built-in palettes. */
+const SCHEME_ACCENTS: Record<'green' | 'blue', SchemeAccents> = {
   green: {
     primaryDark: '#7be193',
     posterBg: '#121412',
@@ -38,8 +42,32 @@ export const COLOR_SCHEME_ACCENTS: Record<ColorScheme, {
   },
 };
 
+/** Effective accents for any scheme — custom palettes are generated at runtime. */
+export function getAccents(scheme: ColorScheme, customHue: number): SchemeAccents {
+  if (scheme === 'custom') {
+    const primaryDark = `#${toneHex(80, 0.13, customHue)}`;
+    const posterText = `#${toneHex(90, 0.005, customHue)}`;
+    const posterBg = `#${toneHex(6, 0.005, customHue)}`;
+    return {
+      primaryDark,
+      posterBg,
+      posterText,
+      posterSubtext: posterText,
+      confetti: [
+        `#${toneHex(40, 0.13, customHue)}`,
+        primaryDark,
+        `#${toneHex(90, 0.13, customHue)}`,
+        `#${toneHex(30, 0.045, customHue)}`,
+        '#ffffff',
+      ],
+    };
+  }
+  return SCHEME_ACCENTS[scheme];
+}
+
 /** Demo palette previews shown in the Settings picker (light-scheme roles). */
 export const COLOR_SCHEME_META: Record<ColorScheme, { label: string }> = {
   green: { label: 'Meadow' },
   blue: { label: 'Android Blue' },
+  custom: { label: 'Custom color' },
 };

@@ -1,0 +1,51 @@
+{
+  "name": "HabitPulse — Routine & Habit Tracker",
+  "short_name": "HabitPulse",
+  "description": "Smart daily routine and habit management. Progress rings, streaks, reminders — 100% local-first.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121412",
+  "theme_color": "#007232",
+  "categories": ["health", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today's schedule",
+      "url": "/",
+      "description": "See today's habits"
+    },
+    {
+      "name": "Analytics",
+      "url": "/?tab=analytics",
+      "description": "Your consistency report"
+    }
+  ]
+}
